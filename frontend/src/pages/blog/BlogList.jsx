@@ -28,78 +28,44 @@ const BlogList = () => {
           setPageLoading(true)
         }
 
-        // 临时使用模拟数据来测试分页功能
-        const mockPosts = Array.from({ length: 25 }, (_, i) => ({
-          id: i + 1,
-          title: `测试文章 ${i + 1}`,
-          slug: `test-post-${i + 1}`,
-          excerpt: `这是第 ${i + 1} 篇测试文章的摘要内容，用于测试分页功能是否正常工作。`,
-          content: `# 测试文章 ${i + 1}\n\n这是测试内容...`,
-          status: 'PUBLISHED',
-          createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
-          publishedAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
-          readTime: Math.ceil(Math.random() * 10) + 2,
-          author: {
-            id: 1,
-            name: '测试作者',
-            username: 'testuser'
-          },
-          category: {
-            id: 1,
-            name: '技术',
-            slug: 'tech',
-            color: '#3B82F6'
-          },
-          tags: [
-            {
-              id: 1,
-              name: 'JavaScript',
-              slug: 'javascript',
-              color: '#F59E0B'
-            },
-            {
-              id: 2,
-              name: 'React',
-              slug: 'react',
-              color: '#10B981'
-            }
-          ]
-        }))
+        // 分别获取数据，便于调试
+        try {
+          // 获取文章数据
+          const postsResponse = await api.getPosts({ page: currentPage, limit: postsPerPage })
+          const { posts: postsData, pagination } = postsResponse.data
+          setPosts(postsData || [])
+          setTotalPosts(pagination?.total || 0)
+          setTotalPages(pagination?.pages || 1)
+        } catch (postsError) {
+          console.error('Error fetching posts:', postsError)
+        }
 
-        // 模拟分页
-        const startIndex = (currentPage - 1) * postsPerPage
-        const endIndex = startIndex + postsPerPage
-        const paginatedPosts = mockPosts.slice(startIndex, endIndex)
+        try {
+          // 获取分类数据
+          const categoriesResponse = await api.getCategories()
+          const { categories: categoriesData } = categoriesResponse.data
+          setCategories(categoriesData || [])
+        } catch (categoriesError) {
+          console.error('Error fetching categories:', categoriesError)
+        }
 
-        setPosts(paginatedPosts)
-        setTotalPosts(mockPosts.length)
-        setTotalPages(Math.ceil(mockPosts.length / postsPerPage))
+        try {
+          // 获取标签数据
+          const tagsResponse = await api.getTags()
+          const { tags: tagsData } = tagsResponse.data
+          setTags(tagsData || [])
+        } catch (tagsError) {
+          console.error('Error fetching tags:', tagsError)
+        }
 
-        // 模拟其他数据
-        setCategories([
-          { id: 1, name: '技术', slug: 'tech', color: '#3B82F6', postCount: 15 },
-          { id: 2, name: '生活', slug: 'life', color: '#10B981', postCount: 8 },
-          { id: 3, name: '思考', slug: 'thoughts', color: '#F59E0B', postCount: 5 }
-        ])
-
-        setTags([
-          { id: 1, name: 'JavaScript', slug: 'javascript', color: '#F59E0B', postCount: 12 },
-          { id: 2, name: 'React', slug: 'react', color: '#10B981', postCount: 8 },
-          { id: 3, name: 'Node.js', slug: 'nodejs', color: '#3B82F6', postCount: 6 }
-        ])
-
-        setArchive([
-          {
-            year: 2024,
-            months: [
-              { month: 12, name: '十二月', count: 5 },
-              { month: 11, name: '十一月', count: 8 },
-              { month: 10, name: '十月', count: 12 }
-            ]
-          }
-        ])
-
-
+        try {
+          // 获取归档数据
+          const archiveResponse = await api.getArchive()
+          const { archive: archiveData } = archiveResponse.data
+          setArchive(archiveData || [])
+        } catch (archiveError) {
+          console.error('Error fetching archive:', archiveError)
+        }
 
       } catch (err) {
         console.error('Error fetching data:', err)
@@ -123,6 +89,16 @@ const BlogList = () => {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  // 月份名称转换
+  const getChineseMonthName = (monthNumber) => {
+    const monthNames = {
+      1: '一月', 2: '二月', 3: '三月', 4: '四月',
+      5: '五月', 6: '六月', 7: '七月', 8: '八月',
+      9: '九月', 10: '十月', 11: '十一月', 12: '十二月'
+    }
+    return monthNames[monthNumber] || `${monthNumber}月`
   }
 
   if (loading) {
@@ -382,7 +358,7 @@ const BlogList = () => {
                               to={`/archive/${yearData.year}/${month.month}`}
                               className="text-gray-600 hover:text-primary-600 transition-colors"
                             >
-                              {month.name}
+                              {month.name || getChineseMonthName(month.month)}
                             </Link>
                             <span className="text-gray-400">({month.count})</span>
                           </div>

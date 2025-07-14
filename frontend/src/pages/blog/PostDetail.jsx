@@ -158,7 +158,7 @@ const PostDetail = () => {
 
       {/* Comments Section */}
       <div className="mt-12">
-        <Comments postId={post.id} />
+        <Comments postSlug={slug} />
       </div>
     </div>
   )

@@ -1,25 +1,17 @@
-import { useState, useEffect } from 'react'
-import { MessageCircle, Reply, Send, User, Clock, Loader2 } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { MessageCircle, Reply, User, Clock, Loader2 } from 'lucide-react'
 import { api } from '../api/client'
+import CommentInput from './CommentInput'
 
 const Comments = ({ postSlug }) => {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [replyingTo, setReplyingTo] = useState(null)
-  const [newComment, setNewComment] = useState({
-    content: '',
-    authorName: '',
-    authorEmail: ''
-  })
 
-  useEffect(() => {
-    if (postSlug) {
-      fetchComments()
-    }
-  }, [postSlug])
+  const fetchComments = useCallback(async () => {
+    if (!postSlug) return
 
-  const fetchComments = async () => {
     try {
       setLoading(true)
       const response = await api.getComments(postSlug)
@@ -29,33 +21,24 @@ const Comments = ({ postSlug }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [postSlug])
 
-  const handleSubmitComment = async (e, parentId = null) => {
-    e.preventDefault()
-    
-    if (!newComment.content.trim() || !newComment.authorName.trim()) {
-      alert('Please fill in your name and comment')
-      return
-    }
+  useEffect(() => {
+    fetchComments()
+  }, [fetchComments])
 
+  const handleSubmitComment = async (content, parentId = null) => {
     try {
       setSubmitting(true)
       await api.createComment(postSlug, {
-        content: newComment.content,
-        authorName: newComment.authorName,
-        authorEmail: newComment.authorEmail,
+        content: content,
+        authorName: 'Anonymous', // 默认匿名用户
         parentId
       })
-      
-      // Reset form
-      setNewComment({
-        content: '',
-        authorName: '',
-        authorEmail: ''
-      })
+
+      // Close reply form
       setReplyingTo(null)
-      
+
       // Refresh comments
       fetchComments()
     } catch (err) {
@@ -123,57 +106,21 @@ const Comments = ({ postSlug }) => {
 
         {/* Reply Form */}
         {replyingTo === comment.id && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <form onSubmit={(e) => handleSubmitComment(e, comment.id)}>
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    placeholder="Your name *"
-                    value={newComment.authorName}
-                    onChange={(e) => setNewComment(prev => ({ ...prev, authorName: e.target.value }))}
-                    className="input-field text-sm"
-                    required
-                  />
-                  <input
-                    type="email"
-                    placeholder="Your email (optional)"
-                    value={newComment.authorEmail}
-                    onChange={(e) => setNewComment(prev => ({ ...prev, authorEmail: e.target.value }))}
-                    className="input-field text-sm"
-                  />
-                </div>
-                <textarea
-                  placeholder="Write your reply..."
-                  value={newComment.content}
-                  onChange={(e) => setNewComment(prev => ({ ...prev, content: e.target.value }))}
-                  rows={3}
-                  className="input-field text-sm"
-                  required
-                />
-                <div className="flex items-center gap-2">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="btn-primary text-sm flex items-center gap-2"
-                  >
-                    {submitting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                    Post Reply
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReplyingTo(null)}
-                    className="btn-secondary text-sm"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </form>
+          <div key={`reply-form-${comment.id}`} className="mt-4 pt-4 border-t border-gray-100">
+            <CommentInput
+              onSubmit={(content) => handleSubmitComment(content, comment.id)}
+              placeholder="Write your reply..."
+              rows={3}
+              className="text-sm"
+              disabled={submitting}
+            />
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              className="btn-secondary text-sm mt-2"
+            >
+              Cancel
+            </button>
           </div>
         )}
       </div>
@@ -201,62 +148,12 @@ const Comments = ({ postSlug }) => {
       {/* New Comment Form */}
       <div className="bg-gray-50 rounded-lg p-6 mb-8">
         <h4 className="text-lg font-medium text-gray-900 mb-4">Leave a Comment</h4>
-        <form onSubmit={(e) => handleSubmitComment(e)}>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Your name"
-                  value={newComment.authorName}
-                  onChange={(e) => setNewComment(prev => ({ ...prev, authorName: e.target.value }))}
-                  className="input-field"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email (optional)
-                </label>
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={newComment.authorEmail}
-                  onChange={(e) => setNewComment(prev => ({ ...prev, authorEmail: e.target.value }))}
-                  className="input-field"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Comment *
-              </label>
-              <textarea
-                placeholder="Share your thoughts..."
-                value={newComment.content}
-                onChange={(e) => setNewComment(prev => ({ ...prev, content: e.target.value }))}
-                rows={4}
-                className="input-field"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-primary flex items-center gap-2"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-              Post Comment
-            </button>
-          </div>
-        </form>
+        <CommentInput
+          onSubmit={(content) => handleSubmitComment(content)}
+          placeholder="Share your thoughts..."
+          rows={4}
+          disabled={submitting}
+        />
       </div>
 
       {/* Comments List */}
