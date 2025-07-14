@@ -1,0 +1,36 @@
+{
+  "name": "pennyprose-backend",
+  "version": "1.0.0",
+  "description": "Backend API for PennyProse - 创作与分析平台",
+  "main": "src/simple-app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/simple-app.js",
+    "dev": "nodemon src/simple-app.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["blog", "api", "koa", "prisma"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^6.11.1",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.0",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "koa": "^3.0.0",
+    "koa-bodyparser": "^4.4.1",
+    "koa-cors": "^0.0.16",
+    "koa-json": "^2.0.2",
+    "koa-router": "^13.1.1",
+    "koa-static": "^5.0.0",
+    "prisma": "^6.11.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
