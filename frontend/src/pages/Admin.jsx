@@ -7,6 +7,12 @@ import MarkdownImporter from '../components/MarkdownImporter'
 const Admin = () => {
   const [stats, setStats] = useState(null)
   const [posts, setPosts] = useState([])
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0
+  })
   const [loading, setLoading] = useState(true)
   const [postsLoading, setPostsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -39,6 +45,7 @@ const Admin = () => {
   }
 
   const fetchPosts = async () => {
+    console.log('Fetching posts with filters:', filters)
     try {
       setPostsLoading(true)
       const response = await api.getAdminPosts({
@@ -47,7 +54,14 @@ const Admin = () => {
         page: filters.page,
         limit: 10
       })
+      console.log('API Response:', response.data)
       setPosts(response.data.posts)
+      setPagination(response.data.pagination || {
+        page: filters.page,
+        limit: 10,
+        total: 0,
+        pages: 0
+      })
     } catch (err) {
       console.error('Error fetching posts:', err)
       setError('Failed to load posts')
@@ -91,6 +105,13 @@ const Admin = () => {
     if (results.summary.failed === 0) {
       setShowImporter(false)
     }
+  }
+
+  const handlePageChange = (newPage) => {
+    setFilters(prev => ({
+      ...prev,
+      page: newPage
+    }))
   }
 
   const formatDate = (dateString) => {
@@ -323,6 +344,67 @@ const Admin = () => {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Component */}
+            {!postsLoading && posts.length > 0 && pagination.pages > 1 && (
+              <div className="mt-6 flex items-center justify-between border-t pt-4">
+                <div className="text-sm text-gray-700">
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
+                  {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                  {pagination.total} results
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={pagination.page <= 1}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+
+                  {/* Page Numbers - Simple version */}
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(pagination.pages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (pagination.pages <= 5) {
+                        pageNum = i + 1;
+                      } else {
+                        // Show pages around current page
+                        const start = Math.max(1, pagination.page - 2);
+                        const end = Math.min(pagination.pages, start + 4);
+                        pageNum = start + i;
+                        if (pageNum > end) return null;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-3 py-2 text-sm font-medium rounded-md ${
+                            pageNum === pagination.page
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={pagination.page >= pagination.pages}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

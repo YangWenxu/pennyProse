@@ -1,283 +1,162 @@
-import Router from 'koa-router'
-import Joi from 'joi'
-import { requireAuth, requireAdmin } from '../middleware/auth.js'
+import { Router } from 'express';
+import { CategoriesService } from '../services/categories.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { validateCategory } from '../middleware/validation.js';
 
-const router = new Router({ prefix: '/api/categories' })
+const router = Router();
+const categoriesService = new CategoriesService();
 
-// Validation schemas
-const createCategorySchema = Joi.object({
-  name: Joi.string().min(1).max(100).required(),
-  slug: Joi.string().min(1).max(100),
-  description: Joi.string().max(500),
-  color: Joi.string().pattern(/^#[0-9A-F]{6}$/i)
-})
+// ============================================================================
+// PUBLIC CATEGORIES ENDPOINTS
+// ============================================================================
 
-const updateCategorySchema = createCategorySchema.fork(['name'], (schema) => schema.optional())
-
-// Helper function to generate slug
-const generateSlug = (name) => {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim('-')
-}
-
-// Get all categories (public)
-router.get('/', async (ctx) => {
+// Get all categories with post counts
+router.get('/', async (req, res) => {
   try {
-    const categories = await ctx.prisma.category.findMany({
-      include: {
-        _count: {
-          select: {
-            posts: {
-              where: {
-                status: 'PUBLISHED'
-              }
-            }
-          }
-        }
-      },
-      orderBy: { name: 'asc' }
-    })
-
-    const transformedCategories = categories.map(category => ({
-      ...category,
-      postCount: category._count.posts
-    }))
-
-    ctx.body = { categories: transformedCategories }
-  } catch (err) {
-    console.error('Error fetching categories:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to fetch categories' }
+    const categories = await categoriesService.findAll();
+    res.json({ categories });
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
   }
-})
+});
 
-// Get single category by slug (public)
-router.get('/:slug', async (ctx) => {
+// ============================================================================
+// ADMIN CATEGORIES ENDPOINTS
+// ============================================================================
+
+// Get all categories for admin (with detailed info)
+router.get('/admin', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { slug } = ctx.params
+    const categories = await categoriesService.findAll();
+    res.json({ categories });
+  } catch (error) {
+    console.error('Error fetching admin categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
 
-    const category = await ctx.prisma.category.findUnique({
-      where: { slug },
-      include: {
-        posts: {
-          where: { status: 'PUBLISHED' },
-          include: {
-            author: {
-              select: {
-                id: true,
-                username: true,
-                name: true,
-                avatar: true
-              }
-            },
-            _count: {
-              select: {
-                comments: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 10
-        },
-        _count: {
-          select: {
-            posts: {
-              where: {
-                status: 'PUBLISHED'
-              }
-            }
-          }
-        }
-      }
-    })
+// Get category by slug with posts
+router.get('/:slug/posts', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { page = 1, limit = 10 } = req.query;
 
-    if (!category) {
-      ctx.status = 404
-      ctx.body = { error: 'Category not found' }
-      return
+    const result = await categoriesService.findBySlug(slug, parseInt(page), parseInt(limit));
+
+    if (!result) {
+      return res.status(404).json({ error: 'Category not found' });
     }
 
-    const transformedCategory = {
-      ...category,
-      postCount: category._count.posts,
-      posts: category.posts.map(post => ({
-        ...post,
-        commentCount: post._count.comments
-      }))
-    }
-
-    ctx.body = { category: transformedCategory }
-  } catch (err) {
-    console.error('Error fetching category:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to fetch category' }
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching category posts:', error);
+    res.status(500).json({ error: 'Failed to fetch category posts' });
   }
-})
+});
 
-// Create category (admin only)
-router.post('/', requireAuth, requireAdmin, async (ctx) => {
+
+// Get single category by ID (admin)
+router.get('/admin/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { error, value } = createCategorySchema.validate(ctx.request.body)
+    const { id } = req.params;
+    const category = await categoriesService.findById(id);
     
-    if (error) {
-      ctx.status = 400
-      ctx.body = { error: error.details[0].message }
-      return
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
     }
 
-    const { name, slug, description, color } = value
+    res.json({ category });
+  } catch (error) {
+    console.error('Error fetching category:', error);
+    res.status(500).json({ error: 'Failed to fetch category' });
+  }
+});
 
-    // Generate slug if not provided
-    const finalSlug = slug || generateSlug(name)
-
-    // Check if category with this name or slug already exists
-    const existingCategory = await ctx.prisma.category.findFirst({
-      where: {
-        OR: [
-          { name },
-          { slug: finalSlug }
-        ]
-      }
-    })
-
-    if (existingCategory) {
-      ctx.status = 400
-      ctx.body = { error: 'Category with this name or slug already exists' }
-      return
-    }
-
-    const category = await ctx.prisma.category.create({
-      data: {
-        name,
-        slug: finalSlug,
-        description,
-        color
-      }
-    })
-
-    ctx.body = {
+// Create new category
+router.post('/', requireAuth, requireAdmin, validateCategory, async (req, res) => {
+  try {
+    const category = await categoriesService.create(req.body);
+    res.status(201).json({
       message: 'Category created successfully',
-      category
+      category,
+    });
+  } catch (error) {
+    console.error('Error creating category:', error);
+    if (error.message === 'Category with this slug already exists') {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to create category' });
     }
-  } catch (err) {
-    console.error('Error creating category:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to create category' }
   }
-})
+});
 
-// Update category (admin only)
-router.put('/:id', requireAuth, requireAdmin, async (ctx) => {
+// Update category
+router.put('/:id', requireAuth, requireAdmin, validateCategory, async (req, res) => {
   try {
-    const { id } = ctx.params
-    const { error, value } = updateCategorySchema.validate(ctx.request.body)
-    
-    if (error) {
-      ctx.status = 400
-      ctx.body = { error: error.details[0].message }
-      return
-    }
-
-    const { name, slug, description, color } = value
-
-    // Check if category exists
-    const existingCategory = await ctx.prisma.category.findUnique({
-      where: { id: parseInt(id) }
-    })
-
-    if (!existingCategory) {
-      ctx.status = 404
-      ctx.body = { error: 'Category not found' }
-      return
-    }
-
-    // Generate slug if name changed
-    const finalSlug = slug || (name ? generateSlug(name) : existingCategory.slug)
-
-    // Check for conflicts
-    if (name !== existingCategory.name || finalSlug !== existingCategory.slug) {
-      const conflict = await ctx.prisma.category.findFirst({
-        where: {
-          AND: [
-            { id: { not: parseInt(id) } },
-            {
-              OR: [
-                ...(name ? [{ name }] : []),
-                { slug: finalSlug }
-              ]
-            }
-          ]
-        }
-      })
-
-      if (conflict) {
-        ctx.status = 400
-        ctx.body = { error: 'Category with this name or slug already exists' }
-        return
-      }
-    }
-
-    const category = await ctx.prisma.category.update({
-      where: { id: parseInt(id) },
-      data: {
-        ...(name && { name }),
-        slug: finalSlug,
-        ...(description !== undefined && { description }),
-        ...(color !== undefined && { color })
-      }
-    })
-
-    ctx.body = {
+    const { id } = req.params;
+    const category = await categoriesService.update(id, req.body);
+    res.json({
       message: 'Category updated successfully',
-      category
+      category,
+    });
+  } catch (error) {
+    console.error('Error updating category:', error);
+    if (error.message === 'Category not found') {
+      res.status(404).json({ error: error.message });
+    } else if (error.message === 'Category with this slug already exists') {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update category' });
     }
-  } catch (err) {
-    console.error('Error updating category:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to update category' }
   }
-})
+});
 
-// Delete category (admin only)
-router.delete('/:id', requireAuth, requireAdmin, async (ctx) => {
+// Delete category
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { id } = ctx.params
-
-    const category = await ctx.prisma.category.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        _count: {
-          select: { posts: true }
-        }
-      }
-    })
-
-    if (!category) {
-      ctx.status = 404
-      ctx.body = { error: 'Category not found' }
-      return
+    const { id } = req.params;
+    const result = await categoriesService.delete(id);
+    res.json(result);
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    if (error.message === 'Category not found') {
+      res.status(404).json({ error: error.message });
+    } else if (error.message === 'Cannot delete category with existing posts') {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to delete category' });
     }
-
-    if (category._count.posts > 0) {
-      ctx.status = 400
-      ctx.body = { error: 'Cannot delete category with existing posts' }
-      return
-    }
-
-    await ctx.prisma.category.delete({
-      where: { id: parseInt(id) }
-    })
-
-    ctx.body = { message: 'Category deleted successfully' }
-  } catch (err) {
-    console.error('Error deleting category:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to delete category' }
   }
-})
+});
 
-export default router
+// Bulk delete categories
+router.delete('/bulk', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { categoryIds } = req.body;
+    
+    if (!categoryIds || !Array.isArray(categoryIds) || categoryIds.length === 0) {
+      return res.status(400).json({ error: 'Category IDs are required' });
+    }
+
+    const results = [];
+    for (const id of categoryIds) {
+      try {
+        await categoriesService.delete(id);
+        results.push({ id, success: true });
+      } catch (error) {
+        results.push({ id, success: false, error: error.message });
+      }
+    }
+
+    res.json({
+      message: 'Bulk delete completed',
+      results,
+    });
+  } catch (error) {
+    console.error('Error in bulk delete:', error);
+    res.status(500).json({ error: 'Failed to delete categories' });
+  }
+});
+
+export default router;

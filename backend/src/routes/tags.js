@@ -1,298 +1,162 @@
-import Router from 'koa-router'
-import Joi from 'joi'
-import { requireAuth, requireAdmin } from '../middleware/auth.js'
+import { Router } from 'express';
+import { TagsService } from '../services/tags.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { validateTag } from '../middleware/validation.js';
 
-const router = new Router({ prefix: '/api/tags' })
+const router = Router();
+const tagsService = new TagsService();
 
-// Validation schemas
-const createTagSchema = Joi.object({
-  name: Joi.string().min(1).max(50).required(),
-  slug: Joi.string().min(1).max(50),
-  color: Joi.string().pattern(/^#[0-9A-F]{6}$/i)
-})
+// ============================================================================
+// PUBLIC TAGS ENDPOINTS
+// ============================================================================
 
-const updateTagSchema = createTagSchema.fork(['name'], (schema) => schema.optional())
-
-// Helper function to generate slug
-const generateSlug = (name) => {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim('-')
-}
-
-// Get all tags (public)
-router.get('/', async (ctx) => {
+// Get all tags with post counts
+router.get('/', async (req, res) => {
   try {
-    const tags = await ctx.prisma.tag.findMany({
-      include: {
-        _count: {
-          select: {
-            posts: {
-              where: {
-                post: {
-                  status: 'PUBLISHED'
-                }
-              }
-            }
-          }
-        }
-      },
-      orderBy: { name: 'asc' }
-    })
-
-    const transformedTags = tags.map(tag => ({
-      ...tag,
-      postCount: tag._count.posts
-    }))
-
-    ctx.body = { tags: transformedTags }
-  } catch (err) {
-    console.error('Error fetching tags:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to fetch tags' }
+    const tags = await tagsService.findAll();
+    res.json({ tags });
+  } catch (error) {
+    console.error('Error fetching tags:', error);
+    res.status(500).json({ error: 'Failed to fetch tags' });
   }
-})
+});
 
-// Get single tag by slug (public)
-router.get('/:slug', async (ctx) => {
+// ============================================================================
+// ADMIN TAGS ENDPOINTS
+// ============================================================================
+
+// Get all tags for admin (with detailed info)
+router.get('/admin', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { slug } = ctx.params
+    const tags = await tagsService.findAll();
+    res.json({ tags });
+  } catch (error) {
+    console.error('Error fetching admin tags:', error);
+    res.status(500).json({ error: 'Failed to fetch tags' });
+  }
+});
 
-    const tag = await ctx.prisma.tag.findUnique({
-      where: { slug },
-      include: {
-        posts: {
-          where: {
-            post: { status: 'PUBLISHED' }
-          },
-          include: {
-            post: {
-              include: {
-                author: {
-                  select: {
-                    id: true,
-                    username: true,
-                    name: true,
-                    avatar: true
-                  }
-                },
-                category: {
-                  select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                    color: true
-                  }
-                },
-                _count: {
-                  select: {
-                    comments: true
-                  }
-                }
-              }
-            }
-          },
-          orderBy: { post: { createdAt: 'desc' } },
-          take: 10
-        },
-        _count: {
-          select: {
-            posts: {
-              where: {
-                post: {
-                  status: 'PUBLISHED'
-                }
-              }
-            }
-          }
-        }
-      }
-    })
+// Get tag by slug with posts
+router.get('/:slug/posts', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { page = 1, limit = 10 } = req.query;
 
-    if (!tag) {
-      ctx.status = 404
-      ctx.body = { error: 'Tag not found' }
-      return
+    const result = await tagsService.findBySlug(slug, parseInt(page), parseInt(limit));
+
+    if (!result) {
+      return res.status(404).json({ error: 'Tag not found' });
     }
 
-    const transformedTag = {
-      ...tag,
-      postCount: tag._count.posts,
-      posts: tag.posts.map(pt => ({
-        ...pt.post,
-        commentCount: pt.post._count.comments
-      }))
-    }
-
-    ctx.body = { tag: transformedTag }
-  } catch (err) {
-    console.error('Error fetching tag:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to fetch tag' }
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching tag posts:', error);
+    res.status(500).json({ error: 'Failed to fetch tag posts' });
   }
-})
+});
 
-// Create tag (admin only)
-router.post('/', requireAuth, requireAdmin, async (ctx) => {
+
+// Get single tag by ID (admin)
+router.get('/admin/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { error, value } = createTagSchema.validate(ctx.request.body)
+    const { id } = req.params;
+    const tag = await tagsService.findById(id);
     
-    if (error) {
-      ctx.status = 400
-      ctx.body = { error: error.details[0].message }
-      return
+    if (!tag) {
+      return res.status(404).json({ error: 'Tag not found' });
     }
 
-    const { name, slug, color } = value
+    res.json({ tag });
+  } catch (error) {
+    console.error('Error fetching tag:', error);
+    res.status(500).json({ error: 'Failed to fetch tag' });
+  }
+});
 
-    // Generate slug if not provided
-    const finalSlug = slug || generateSlug(name)
-
-    // Check if tag with this name or slug already exists
-    const existingTag = await ctx.prisma.tag.findFirst({
-      where: {
-        OR: [
-          { name },
-          { slug: finalSlug }
-        ]
-      }
-    })
-
-    if (existingTag) {
-      ctx.status = 400
-      ctx.body = { error: 'Tag with this name or slug already exists' }
-      return
-    }
-
-    const tag = await ctx.prisma.tag.create({
-      data: {
-        name,
-        slug: finalSlug,
-        color
-      }
-    })
-
-    ctx.body = {
+// Create new tag
+router.post('/', requireAuth, requireAdmin, validateTag, async (req, res) => {
+  try {
+    const tag = await tagsService.create(req.body);
+    res.status(201).json({
       message: 'Tag created successfully',
-      tag
+      tag,
+    });
+  } catch (error) {
+    console.error('Error creating tag:', error);
+    if (error.message === 'Tag with this slug already exists') {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to create tag' });
     }
-  } catch (err) {
-    console.error('Error creating tag:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to create tag' }
   }
-})
+});
 
-// Update tag (admin only)
-router.put('/:id', requireAuth, requireAdmin, async (ctx) => {
+// Update tag
+router.put('/:id', requireAuth, requireAdmin, validateTag, async (req, res) => {
   try {
-    const { id } = ctx.params
-    const { error, value } = updateTagSchema.validate(ctx.request.body)
-    
-    if (error) {
-      ctx.status = 400
-      ctx.body = { error: error.details[0].message }
-      return
-    }
-
-    const { name, slug, color } = value
-
-    // Check if tag exists
-    const existingTag = await ctx.prisma.tag.findUnique({
-      where: { id: parseInt(id) }
-    })
-
-    if (!existingTag) {
-      ctx.status = 404
-      ctx.body = { error: 'Tag not found' }
-      return
-    }
-
-    // Generate slug if name changed
-    const finalSlug = slug || (name ? generateSlug(name) : existingTag.slug)
-
-    // Check for conflicts
-    if (name !== existingTag.name || finalSlug !== existingTag.slug) {
-      const conflict = await ctx.prisma.tag.findFirst({
-        where: {
-          AND: [
-            { id: { not: parseInt(id) } },
-            {
-              OR: [
-                ...(name ? [{ name }] : []),
-                { slug: finalSlug }
-              ]
-            }
-          ]
-        }
-      })
-
-      if (conflict) {
-        ctx.status = 400
-        ctx.body = { error: 'Tag with this name or slug already exists' }
-        return
-      }
-    }
-
-    const tag = await ctx.prisma.tag.update({
-      where: { id: parseInt(id) },
-      data: {
-        ...(name && { name }),
-        slug: finalSlug,
-        ...(color !== undefined && { color })
-      }
-    })
-
-    ctx.body = {
+    const { id } = req.params;
+    const tag = await tagsService.update(id, req.body);
+    res.json({
       message: 'Tag updated successfully',
-      tag
+      tag,
+    });
+  } catch (error) {
+    console.error('Error updating tag:', error);
+    if (error.message === 'Tag not found') {
+      res.status(404).json({ error: error.message });
+    } else if (error.message === 'Tag with this slug already exists') {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update tag' });
     }
-  } catch (err) {
-    console.error('Error updating tag:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to update tag' }
   }
-})
+});
 
-// Delete tag (admin only)
-router.delete('/:id', requireAuth, requireAdmin, async (ctx) => {
+// Delete tag
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { id } = ctx.params
-
-    const tag = await ctx.prisma.tag.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        _count: {
-          select: { posts: true }
-        }
-      }
-    })
-
-    if (!tag) {
-      ctx.status = 404
-      ctx.body = { error: 'Tag not found' }
-      return
+    const { id } = req.params;
+    const result = await tagsService.delete(id);
+    res.json(result);
+  } catch (error) {
+    console.error('Error deleting tag:', error);
+    if (error.message === 'Tag not found') {
+      res.status(404).json({ error: error.message });
+    } else if (error.message === 'Cannot delete tag with existing posts') {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to delete tag' });
     }
-
-    if (tag._count.posts > 0) {
-      ctx.status = 400
-      ctx.body = { error: 'Cannot delete tag with existing posts' }
-      return
-    }
-
-    await ctx.prisma.tag.delete({
-      where: { id: parseInt(id) }
-    })
-
-    ctx.body = { message: 'Tag deleted successfully' }
-  } catch (err) {
-    console.error('Error deleting tag:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to delete tag' }
   }
-})
+});
 
-export default router
+// Bulk delete tags
+router.delete('/bulk', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { tagIds } = req.body;
+    
+    if (!tagIds || !Array.isArray(tagIds) || tagIds.length === 0) {
+      return res.status(400).json({ error: 'Tag IDs are required' });
+    }
+
+    const results = [];
+    for (const id of tagIds) {
+      try {
+        await tagsService.delete(id);
+        results.push({ id, success: true });
+      } catch (error) {
+        results.push({ id, success: false, error: error.message });
+      }
+    }
+
+    res.json({
+      message: 'Bulk delete completed',
+      results,
+    });
+  } catch (error) {
+    console.error('Error in bulk delete:', error);
+    res.status(500).json({ error: 'Failed to delete tags' });
+  }
+});
+
+export default router;

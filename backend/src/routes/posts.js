@@ -1,432 +1,200 @@
-import Router from 'koa-router'
-import Joi from 'joi'
-import { requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js'
+import { Router } from 'express';
+import { PostsService } from '../services/posts.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { validatePost } from '../middleware/validation.js';
 
-const router = new Router({ prefix: '/api/posts' })
+const router = Router();
+const postsService = new PostsService();
 
-// Validation schemas
-const createPostSchema = Joi.object({
-  title: Joi.string().min(1).max(200).required(),
-  slug: Joi.string().min(1).max(200),
-  excerpt: Joi.string().max(500),
-  content: Joi.string().required(),
-  status: Joi.string().valid('DRAFT', 'PUBLISHED', 'ARCHIVED').default('DRAFT'),
-  featured: Joi.boolean().default(false),
-  categoryId: Joi.number().integer().positive(),
-  tagIds: Joi.array().items(Joi.number().integer().positive())
-})
+// ============================================================================
+// PUBLIC POSTS ENDPOINTS
+// ============================================================================
 
-const updatePostSchema = createPostSchema.fork(['title', 'content'], (schema) => schema.optional())
-
-// Helper function to generate slug
-const generateSlug = (title) => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim('-')
-}
-
-// Helper function to calculate read time
-const calculateReadTime = (content) => {
-  const wordsPerMinute = 200
-  const wordCount = content.split(/\s+/).length
-  return Math.ceil(wordCount / wordsPerMinute)
-}
-
-// Get all posts (public)
-router.get('/', optionalAuth, async (ctx) => {
+// Get all published posts with pagination and filtering
+router.get('/', async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      status = 'PUBLISHED',
-      category,
-      tag,
-      search,
-      featured
-    } = ctx.query
-
-    const skip = (parseInt(page) - 1) * parseInt(limit)
-    const take = parseInt(limit)
-
-    // Build where clause
-    const where = {
-      ...(ctx.user?.role !== 'ADMIN' && { status: 'PUBLISHED' }),
-      ...(status && ctx.user?.role === 'ADMIN' && { status }),
-      ...(category && { category: { slug: category } }),
-      ...(tag && { tags: { some: { tag: { slug: tag } } } }),
-      ...(featured !== undefined && { featured: featured === 'true' }),
-      ...(search && {
-        OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { excerpt: { contains: search, mode: 'insensitive' } },
-          { content: { contains: search, mode: 'insensitive' } }
-        ]
-      })
-    }
-
-    const [posts, total] = await Promise.all([
-      ctx.prisma.post.findMany({
-        where,
-        skip,
-        take,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          author: {
-            select: {
-              id: true,
-              username: true,
-              name: true,
-              avatar: true
-            }
-          },
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              color: true
-            }
-          },
-          tags: {
-            include: {
-              tag: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  color: true
-                }
-              }
-            }
-          },
-          _count: {
-            select: {
-              comments: true
-            }
-          }
-        }
-      }),
-      ctx.prisma.post.count({ where })
-    ])
-
-    // Transform posts to include tags directly
-    const transformedPosts = posts.map(post => ({
-      ...post,
-      tags: post.tags.map(pt => pt.tag),
-      commentCount: post._count.comments
-    }))
-
-    ctx.body = {
-      posts: transformedPosts,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit))
-      }
-    }
-  } catch (err) {
-    console.error('Error fetching posts:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to fetch posts' }
+    const result = await postsService.findAll(req.query);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    res.status(500).json({ error: 'Failed to fetch posts' });
   }
-})
+});
 
-// Get single post by slug (public)
-router.get('/:slug', optionalAuth, async (ctx) => {
+// ============================================================================
+// ADMIN POSTS ENDPOINTS
+// ============================================================================
+
+// Get all posts for admin (including drafts and archived)
+router.get('/admin', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { slug } = ctx.params
+    const query = { ...req.query, status: 'all' };
+    const result = await postsService.findAll(query);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching admin posts:', error);
+    res.status(500).json({ error: 'Failed to fetch posts' });
+  }
+});
 
-    const post = await ctx.prisma.post.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            avatar: true,
-            bio: true
-          }
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true
-          }
-        },
-        tags: {
-          include: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                color: true
-              }
-            }
-          }
-        },
-        comments: {
-          where: { status: 'APPROVED' },
-          include: {
-            author: {
-              select: {
-                id: true,
-                username: true,
-                name: true,
-                avatar: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        }
-      }
-    })
+// Get single post by slug
+router.get('/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const post = await postsService.findBySlug(slug);
 
     if (!post) {
-      ctx.status = 404
-      ctx.body = { error: 'Post not found' }
-      return
+      return res.status(404).json({ error: 'Post not found' });
     }
 
-    // Check if user can view this post
-    if (post.status !== 'PUBLISHED' && ctx.user?.role !== 'ADMIN' && ctx.user?.id !== post.authorId) {
-      ctx.status = 404
-      ctx.body = { error: 'Post not found' }
-      return
-    }
-
-    // Increment view count
-    await ctx.prisma.post.update({
-      where: { id: post.id },
-      data: { viewCount: { increment: 1 } }
-    })
-
-    // Transform post
-    const transformedPost = {
-      ...post,
-      tags: post.tags.map(pt => pt.tag)
-    }
-
-    ctx.body = { post: transformedPost }
-  } catch (err) {
-    console.error('Error fetching post:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to fetch post' }
+    res.json({ post });
+  } catch (error) {
+    console.error('Error fetching post:', error);
+    res.status(500).json({ error: 'Failed to fetch post' });
   }
-})
+});
 
-// Create post (admin only)
-router.post('/', requireAuth, requireAdmin, async (ctx) => {
+
+// Create new post
+router.post('/', requireAuth, requireAdmin, validatePost, async (req, res) => {
   try {
-    const { error, value } = createPostSchema.validate(ctx.request.body)
-
-    if (error) {
-      ctx.status = 400
-      ctx.body = { error: error.details[0].message }
-      return
-    }
-
-    const { title, slug, excerpt, content, status, featured, categoryId, tagIds } = value
-
-    // Generate slug if not provided
-    const finalSlug = slug || generateSlug(title)
-
-    // Check if slug already exists
-    const existingPost = await ctx.prisma.post.findUnique({
-      where: { slug: finalSlug }
-    })
-
-    if (existingPost) {
-      ctx.status = 400
-      ctx.body = { error: 'Post with this slug already exists' }
-      return
-    }
-
-    // Calculate read time
-    const readTime = calculateReadTime(content)
-
-    // Create post
-    const post = await ctx.prisma.post.create({
-      data: {
-        title,
-        slug: finalSlug,
-        excerpt,
-        content,
-        status,
-        featured,
-        readTime,
-        authorId: ctx.user.id,
-        categoryId,
-        publishedAt: status === 'PUBLISHED' ? new Date() : null,
-        ...(tagIds && {
-          tags: {
-            create: tagIds.map(tagId => ({ tagId }))
-          }
-        })
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            avatar: true
-          }
-        },
-        category: true,
-        tags: {
-          include: {
-            tag: true
-          }
-        }
-      }
-    })
-
-    ctx.body = {
+    const post = await postsService.create(req.body, req.user.userId);
+    res.status(201).json({
       message: 'Post created successfully',
-      post: {
-        ...post,
-        tags: post.tags.map(pt => pt.tag)
-      }
+      post,
+    });
+  } catch (error) {
+    console.error('Error creating post:', error);
+    if (error.message === 'Post with this slug already exists') {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to create post' });
     }
-  } catch (err) {
-    console.error('Error creating post:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to create post' }
   }
-})
+});
 
-// Update post (admin only)
-router.put('/:id', requireAuth, requireAdmin, async (ctx) => {
+// Update post
+router.put('/:id', requireAuth, requireAdmin, validatePost, async (req, res) => {
   try {
-    const { id } = ctx.params
-    const { error, value } = updatePostSchema.validate(ctx.request.body)
-
-    if (error) {
-      ctx.status = 400
-      ctx.body = { error: error.details[0].message }
-      return
-    }
-
-    const { title, slug, excerpt, content, status, featured, categoryId, tagIds } = value
-
-    // Check if post exists
-    const existingPost = await ctx.prisma.post.findUnique({
-      where: { id: parseInt(id) }
-    })
-
-    if (!existingPost) {
-      ctx.status = 404
-      ctx.body = { error: 'Post not found' }
-      return
-    }
-
-    // Generate slug if title changed
-    const finalSlug = slug || (title ? generateSlug(title) : existingPost.slug)
-
-    // Check if slug conflicts with other posts
-    if (finalSlug !== existingPost.slug) {
-      const slugConflict = await ctx.prisma.post.findUnique({
-        where: { slug: finalSlug }
-      })
-
-      if (slugConflict) {
-        ctx.status = 400
-        ctx.body = { error: 'Post with this slug already exists' }
-        return
-      }
-    }
-
-    // Calculate read time if content changed
-    const readTime = content ? calculateReadTime(content) : existingPost.readTime
-
-    // Update post
-    const post = await ctx.prisma.post.update({
-      where: { id: parseInt(id) },
-      data: {
-        ...(title && { title }),
-        slug: finalSlug,
-        ...(excerpt !== undefined && { excerpt }),
-        ...(content && { content, readTime }),
-        ...(status && {
-          status,
-          publishedAt: status === 'PUBLISHED' && existingPost.status !== 'PUBLISHED'
-            ? new Date()
-            : existingPost.publishedAt
-        }),
-        ...(featured !== undefined && { featured }),
-        ...(categoryId !== undefined && { categoryId }),
-        ...(tagIds && {
-          tags: {
-            deleteMany: {},
-            create: tagIds.map(tagId => ({ tagId }))
-          }
-        })
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            avatar: true
-          }
-        },
-        category: true,
-        tags: {
-          include: {
-            tag: true
-          }
-        }
-      }
-    })
-
-    ctx.body = {
+    const { id } = req.params;
+    const post = await postsService.update(id, req.body);
+    res.json({
       message: 'Post updated successfully',
-      post: {
-        ...post,
-        tags: post.tags.map(pt => pt.tag)
+      post,
+    });
+  } catch (error) {
+    console.error('Error updating post:', error);
+    if (error.message === 'Post not found') {
+      res.status(404).json({ error: error.message });
+    } else if (error.message === 'Post with this slug already exists') {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update post' });
+    }
+  }
+});
+
+// Update post status only
+router.patch('/:id/status', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status || !['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(status.toUpperCase())) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const post = await postsService.update(id, { status: status.toUpperCase() });
+    res.json({
+      message: 'Post status updated successfully',
+      post,
+    });
+  } catch (error) {
+    console.error('Error updating post status:', error);
+    if (error.message === 'Post not found') {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update post status' });
+    }
+  }
+});
+
+// Delete post
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await postsService.delete(id);
+    res.json(result);
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    if (error.message === 'Post not found') {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to delete post' });
+    }
+  }
+});
+
+// Bulk update post status
+router.patch('/bulk-status', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { postIds, status } = req.body;
+    
+    if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
+      return res.status(400).json({ error: 'Post IDs are required' });
+    }
+
+    if (!['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(status?.toUpperCase())) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const results = [];
+    for (const id of postIds) {
+      try {
+        const post = await postsService.update(id, { status });
+        results.push({ id, success: true, post });
+      } catch (error) {
+        results.push({ id, success: false, error: error.message });
       }
     }
-  } catch (err) {
-    console.error('Error updating post:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to update post' }
+
+    res.json({
+      message: 'Bulk update completed',
+      results,
+    });
+  } catch (error) {
+    console.error('Error in bulk update:', error);
+    res.status(500).json({ error: 'Failed to update posts' });
   }
-})
+});
 
-// Delete post (admin only)
-router.delete('/:id', requireAuth, requireAdmin, async (ctx) => {
+// Bulk delete posts
+router.delete('/bulk', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { id } = ctx.params
-
-    const post = await ctx.prisma.post.findUnique({
-      where: { id: parseInt(id) }
-    })
-
-    if (!post) {
-      ctx.status = 404
-      ctx.body = { error: 'Post not found' }
-      return
+    const { postIds } = req.body;
+    
+    if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
+      return res.status(400).json({ error: 'Post IDs are required' });
     }
 
-    await ctx.prisma.post.delete({
-      where: { id: parseInt(id) }
-    })
+    const results = [];
+    for (const id of postIds) {
+      try {
+        await postsService.delete(id);
+        results.push({ id, success: true });
+      } catch (error) {
+        results.push({ id, success: false, error: error.message });
+      }
+    }
 
-    ctx.body = { message: 'Post deleted successfully' }
-  } catch (err) {
-    console.error('Error deleting post:', err)
-    ctx.status = 500
-    ctx.body = { error: 'Failed to delete post' }
+    res.json({
+      message: 'Bulk delete completed',
+      results,
+    });
+  } catch (error) {
+    console.error('Error in bulk delete:', error);
+    res.status(500).json({ error: 'Failed to delete posts' });
   }
-})
+});
 
-export default router
+export default router;
