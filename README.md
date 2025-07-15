@@ -62,11 +62,22 @@ pennyprose/
 │   ├── package.json
 │   └── pnpm-lock.yaml
 ├── stock-analysis/        # Python + FastAPI 股票分析服务
+│   ├── .gitignore            # Git忽略文件配置
 │   ├── main.py               # FastAPI 应用入口
 │   ├── requirements.txt      # Python 依赖
+│   ├── start.sh              # 启动脚本
 │   ├── models/               # 数据模型
-│   ├── services/             # 业务逻辑
+│   │   └── stock_models.py   # Pydantic数据模型定义
+│   ├── services/             # 业务逻辑层
+│   │   ├── data_service.py   # 数据获取服务
+│   │   ├── analysis_service.py # 股票分析服务
+│   │   └── backtest_service.py # 回测服务
+│   ├── routers/              # 路由层
+│   │   ├── stock_router.py   # 股票分析路由
+│   │   ├── watchlist_router.py # 自选股和预警路由
+│   │   └── backtest_router.py # 回测路由
 │   └── utils/                # 工具函数
+│       └── technical_analysis.py # 技术分析工具
 ├── shared/                # 共享类型定义和工具
 └── docs/                  # 项目文档
 ```
@@ -107,6 +118,15 @@ pennyprose/
 - **Requests** - HTTP 请求库
 - **Pydantic** - 数据验证和序列化
 
+### 股票分析服务架构
+- **模块化设计** - 分层架构，职责清晰分离
+- **数据模型层** - Pydantic模型定义和数据验证
+- **服务层** - 业务逻辑封装和数据处理
+- **路由层** - API端点定义和请求处理
+- **工具层** - 技术分析算法和工具函数
+- **多数据源** - 容错机制和备用数据源
+- **类型安全** - 完整的类型注解和验证
+
 ### 数据源和API
 - **腾讯财经API** - 实时股票数据获取
 - **新浪财经API** - 备用股票数据源
@@ -140,6 +160,9 @@ pennyprose/
 - 📊 **实时数据获取** - 多数据源保障数据可靠性
 - � **股票搜索** - 快速查找A股股票
 - � **响应式图表** - 移动端友好的数据可视化
+- 🏗️ **模块化架构** - 清晰的分层设计，易于维护和扩展
+- 🛡️ **容错机制** - 多数据源备份，服务稳定可靠
+- 🔧 **类型安全** - 完整的数据验证和类型检查
 
 ### 管理后台
 - 👥 用户管理
@@ -267,12 +290,49 @@ npm run dev
 ### 股票分析API (Python)
 - `POST /analyze` - 股票技术分析
 - `GET /history/{symbol}` - 获取历史数据
+- `GET /search/{query}` - 股票搜索
 - `GET /watchlist` - 获取自选股列表
 - `POST /watchlist` - 添加自选股
 - `DELETE /watchlist/{symbol}` - 删除自选股
 - `GET /alerts` - 获取预警列表
 - `POST /alerts` - 创建预警
+- `DELETE /alerts/{id}` - 删除预警
+- `GET /alerts/check` - 检查预警状态
 - `POST /backtest` - 策略回测
+
+### 股票分析服务模块化架构
+
+#### 📁 目录结构
+```
+stock-analysis/
+├── main.py                    # 应用入口和路由注册
+├── models/                    # 数据模型层
+│   └── stock_models.py        # Pydantic数据模型
+├── services/                  # 业务逻辑层
+│   ├── data_service.py        # 数据获取服务
+│   ├── analysis_service.py    # 股票分析服务
+│   └── backtest_service.py    # 回测服务
+├── routers/                   # 路由层
+│   ├── stock_router.py        # 股票分析路由
+│   ├── watchlist_router.py    # 自选股和预警路由
+│   └── backtest_router.py     # 回测路由
+└── utils/                     # 工具层
+    └── technical_analysis.py  # 技术分析工具
+```
+
+#### 🏗️ 架构设计原则
+- **分层架构** - 数据模型、业务逻辑、路由处理分离
+- **单一职责** - 每个模块专注特定功能
+- **依赖注入** - 服务间松耦合设计
+- **类型安全** - 完整的类型注解和验证
+- **错误处理** - 统一的异常处理机制
+- **容错设计** - 多数据源备份和降级策略
+
+#### 🔧 核心模块说明
+- **DataService** - 多数据源股票数据获取
+- **AnalysisService** - 8大技术指标计算和分析
+- **BacktestService** - 策略回测和性能评估
+- **TechnicalAnalysis** - TA-Lib技术分析工具封装
 
 ## 开发指南
 
