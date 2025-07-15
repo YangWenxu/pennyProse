@@ -12,6 +12,41 @@ const Backtest = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const testAPI = async () => {
+    console.log('=== 开始API测试 ===')
+    try {
+      const testParams = { symbol: '000001', strategy: 'ma_cross', days: 100 }
+      console.log('测试参数:', testParams)
+
+      const response = await fetch('http://localhost:8001/backtest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testParams)
+      })
+
+      console.log('响应状态:', response.status, response.statusText)
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('API返回数据:', data)
+        console.log('数据类型检查:')
+        console.log('- total_return:', typeof data.total_return, data.total_return)
+        console.log('- avg_return_per_trade:', typeof data.avg_return_per_trade, data.avg_return_per_trade)
+        console.log('- trades数组:', Array.isArray(data.trades), data.trades?.length)
+
+        setResult(data)
+        alert('API测试成功！查看控制台日志')
+      } else {
+        console.error('API响应失败:', response.status)
+        alert('API测试失败：' + response.status)
+      }
+    } catch (error) {
+      console.error('API测试异常:', error)
+      alert('API测试异常：' + error.message)
+    }
+    console.log('=== API测试结束 ===')
+  }
+
   const runBacktest = async () => {
     if (!backtestParams.symbol.trim()) {
       alert('请输入股票代码')
@@ -24,6 +59,7 @@ const Backtest = () => {
 
       // 尝试调用后端API
       try {
+        console.log('发送回测请求:', backtestParams)
         const response = await fetch('http://localhost:8001/backtest', {
           method: 'POST',
           headers: {
@@ -32,12 +68,18 @@ const Backtest = () => {
           body: JSON.stringify(backtestParams)
         })
 
+        console.log('回测API响应状态:', response.status)
+
         if (response.ok) {
           const data = await response.json()
+          console.log('回测API返回数据:', data)
           setResult(data)
           return
+        } else {
+          console.log('回测API响应失败:', response.status, response.statusText)
         }
       } catch (apiError) {
+        console.log('回测API调用异常:', apiError)
         console.log('API不可用，使用模拟数据')
       }
 
@@ -50,15 +92,15 @@ const Backtest = () => {
         period_days: backtestParams.days,
         total_trades: Math.floor(Math.random() * 20 + 5),
         win_rate: Math.floor(Math.random() * 40 + 40), // 40-80%
-        total_return: (Math.random() * 60 - 20).toFixed(2), // -20% to +40%
-        avg_return_per_trade: (Math.random() * 10 - 3).toFixed(2), // -3% to +7%
+        total_return: parseFloat((Math.random() * 60 - 20).toFixed(2)), // -20% to +40%
+        avg_return_per_trade: parseFloat((Math.random() * 10 - 3).toFixed(2)), // -3% to +7%
         summary: `${backtestParams.symbol} 在过去${backtestParams.days}天的均线交叉策略回测中，共产生${Math.floor(Math.random() * 20 + 5)}次交易信号。策略表现${Math.random() > 0.5 ? '良好' : '一般'}，建议结合其他指标综合判断。`,
         trades: Array.from({ length: Math.min(5, Math.floor(Math.random() * 8 + 3)) }, () => ({
           type: Math.random() > 0.5 ? 'buy' : 'sell',
-          price: 10 + Math.random() * 20,
-          ma5: 10 + Math.random() * 20,
-          ma20: 10 + Math.random() * 20,
-          profit: Math.random() * 20 - 10
+          price: parseFloat((10 + Math.random() * 20).toFixed(2)),
+          ma5: parseFloat((10 + Math.random() * 20).toFixed(2)),
+          ma20: parseFloat((10 + Math.random() * 20).toFixed(2)),
+          profit: parseFloat((Math.random() * 20 - 10).toFixed(2))
         }))
       }
 
