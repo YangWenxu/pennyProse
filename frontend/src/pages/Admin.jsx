@@ -16,6 +16,12 @@ const Admin = () => {
     search: '',
     page: 1
   })
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0
+  })
 
   useEffect(() => {
     fetchAdminData()
@@ -50,6 +56,12 @@ const Admin = () => {
       })
       console.log('API Response:', response.data)
       setPosts(response.data.posts)
+      setPagination(response.data.pagination || {
+        page: filters.page,
+        limit: 10,
+        total: 0,
+        pages: 0
+      })
     } catch (err) {
       console.error('Error fetching posts:', err)
       setError('Failed to load posts')
@@ -332,20 +344,6 @@ const Admin = () => {
                 ))}
               </tbody>
             </table>
-
-            {/* Debug info - remove in production */}
-            {!postsLoading && (
-              <div className="mt-4 p-2 bg-gray-100 text-xs text-gray-600 rounded">
-                Debug: Page {pagination.page} of {pagination.pages}, Total: {pagination.total}
-              </div>
-            )}
-
-            {/* Debug info - remove in production */}
-            {!postsLoading && (
-              <div className="mt-4 p-2 bg-gray-100 text-xs text-gray-600 rounded">
-                Debug: Page {pagination.page} of {pagination.pages}, Total: {pagination.total}, Posts: {posts.length}
-              </div>
-            )}
 
             {/* Pagination Component */}
             {!postsLoading && posts.length > 0 && pagination.pages > 1 && (

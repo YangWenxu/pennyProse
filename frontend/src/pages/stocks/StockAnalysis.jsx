@@ -308,8 +308,8 @@ const StockAnalysis = () => {
           )}
 
           {/* Fundamental Analysis */}
-          {analysis && (() => {
-            const fundamentalData = generateMockFundamentalData(analysis.symbol)
+          {analysis && analysis.analysis && analysis.analysis.fundamental && (() => {
+            const fundamentalData = analysis.analysis.fundamental
             return (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
@@ -496,7 +496,7 @@ const StockAnalysis = () => {
           })()}
 
           {/* Technical Indicators */}
-          {analysis.analysis && (
+          {analysis.analysis && analysis.analysis.technical && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
                 <LineChart className="w-5 h-5 text-blue-600" />
@@ -513,16 +513,16 @@ const StockAnalysis = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">MACD:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.macd.macd)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.macd.macd)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">信号线:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.macd.signal)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.macd.signal)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">趋势:</span>
-                      <span className={`font-medium ${analysis.analysis.macd.trend === 'bullish' ? 'text-green-600' : 'text-red-600'}`}>
-                        {analysis.analysis.macd.trend === 'bullish' ? '多头' : '空头'}
+                      <span className={`font-medium ${analysis.analysis.technical.macd.trend === 'bullish' ? 'text-green-600' : 'text-red-600'}`}>
+                        {analysis.analysis.technical.macd.trend === 'bullish' ? '多头' : '空头'}
                       </span>
                     </div>
                   </div>
@@ -537,20 +537,20 @@ const StockAnalysis = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">K值:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.kdj.k)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.kdj.k)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">D值:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.kdj.d)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.kdj.d)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">信号:</span>
                       <span className={`font-medium ${
-                        analysis.analysis.kdj.signal === 'golden_cross' ? 'text-green-600' :
-                        analysis.analysis.kdj.signal === 'death_cross' ? 'text-red-600' : 'text-gray-600'
+                        analysis.analysis.technical.kdj.signal === 'golden_cross' ? 'text-green-600' :
+                        analysis.analysis.technical.kdj.signal === 'death_cross' ? 'text-red-600' : 'text-gray-600'
                       }`}>
-                        {analysis.analysis.kdj.signal === 'golden_cross' ? '金叉' :
-                         analysis.analysis.kdj.signal === 'death_cross' ? '死叉' : '中性'}
+                        {analysis.analysis.technical.kdj.signal === 'golden_cross' ? '金叉' :
+                         analysis.analysis.technical.kdj.signal === 'death_cross' ? '死叉' : '中性'}
                       </span>
                     </div>
                   </div>
@@ -565,16 +565,16 @@ const StockAnalysis = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">RSI值:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.rsi.rsi)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.rsi.rsi)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">状态:</span>
                       <span className={`font-medium ${
-                        analysis.analysis.rsi.overbought ? 'text-red-600' :
-                        analysis.analysis.rsi.oversold ? 'text-green-600' : 'text-gray-600'
+                        analysis.analysis.technical.rsi.overbought ? 'text-red-600' :
+                        analysis.analysis.technical.rsi.oversold ? 'text-green-600' : 'text-gray-600'
                       }`}>
-                        {analysis.analysis.rsi.overbought ? '超买' :
-                         analysis.analysis.rsi.oversold ? '超卖' : '正常'}
+                        {analysis.analysis.technical.rsi.overbought ? '超买' :
+                         analysis.analysis.technical.rsi.oversold ? '超卖' : '正常'}
                       </span>
                     </div>
                   </div>
@@ -589,20 +589,20 @@ const StockAnalysis = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">上轨:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.boll.upper)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.boll.upper)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">下轨:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.boll.lower)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.boll.lower)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">位置:</span>
                       <span className={`font-medium ${
-                        analysis.analysis.boll.position === 'upper' ? 'text-red-600' :
-                        analysis.analysis.boll.position === 'lower' ? 'text-green-600' : 'text-gray-600'
+                        analysis.analysis.technical.boll.position === 'upper' ? 'text-red-600' :
+                        analysis.analysis.technical.boll.position === 'lower' ? 'text-green-600' : 'text-gray-600'
                       }`}>
-                        {analysis.analysis.boll.position === 'upper' ? '上轨附近' :
-                         analysis.analysis.boll.position === 'lower' ? '下轨附近' : '中轨附近'}
+                        {analysis.analysis.technical.boll.position === 'upper' ? '上轨附近' :
+                         analysis.analysis.technical.boll.position === 'lower' ? '下轨附近' : '中轨附近'}
                       </span>
                     </div>
                   </div>
@@ -617,16 +617,16 @@ const StockAnalysis = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">WR值:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.wr.wr)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.wr.wr)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">状态:</span>
                       <span className={`font-medium ${
-                        analysis.analysis.wr.overbought ? 'text-red-600' :
-                        analysis.analysis.wr.oversold ? 'text-green-600' : 'text-gray-600'
+                        analysis.analysis.technical.wr.overbought ? 'text-red-600' :
+                        analysis.analysis.technical.wr.oversold ? 'text-green-600' : 'text-gray-600'
                       }`}>
-                        {analysis.analysis.wr.overbought ? '超买' :
-                         analysis.analysis.wr.oversold ? '超卖' : '正常'}
+                        {analysis.analysis.technical.wr.overbought ? '超买' :
+                         analysis.analysis.technical.wr.oversold ? '超卖' : '正常'}
                       </span>
                     </div>
                   </div>
@@ -641,16 +641,16 @@ const StockAnalysis = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">MA5:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.ma.ma5)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.ma.ma5)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">MA20:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.ma.ma20)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.ma.ma20)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">多头排列:</span>
-                      <span className={`font-medium ${analysis.analysis.ma.bullish_alignment ? 'text-green-600' : 'text-red-600'}`}>
-                        {analysis.analysis.ma.bullish_alignment ? '是' : '否'}
+                      <span className={`font-medium ${analysis.analysis.technical.ma.bullish_alignment ? 'text-green-600' : 'text-red-600'}`}>
+                        {analysis.analysis.technical.ma.bullish_alignment ? '是' : '否'}
                       </span>
                     </div>
                   </div>
@@ -665,16 +665,16 @@ const StockAnalysis = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">量比:</span>
-                      <span className="font-medium">{formatNumber(analysis.analysis.volume.volume_ratio)}</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.volume.volume_ratio)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">量价配合:</span>
                       <span className={`font-medium ${
-                        analysis.analysis.volume.volume_price_signal === 'bullish' ? 'text-green-600' :
-                        analysis.analysis.volume.volume_price_signal === 'bearish' ? 'text-red-600' : 'text-gray-600'
+                        analysis.analysis.technical.volume.volume_price_signal === 'bullish' ? 'text-green-600' :
+                        analysis.analysis.technical.volume.volume_price_signal === 'bearish' ? 'text-red-600' : 'text-gray-600'
                       }`}>
-                        {analysis.analysis.volume.volume_price_signal === 'bullish' ? '良好' :
-                         analysis.analysis.volume.volume_price_signal === 'bearish' ? '背离' : '中性'}
+                        {analysis.analysis.technical.volume.volume_price_signal === 'bullish' ? '良好' :
+                         analysis.analysis.technical.volume.volume_price_signal === 'bearish' ? '背离' : '中性'}
                       </span>
                     </div>
                   </div>
@@ -689,20 +689,20 @@ const StockAnalysis = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">1x1线:</span>
-                      <span className="font-medium">¥{formatNumber(analysis.analysis.gann.gann_1x1)}</span>
+                      <span className="font-medium">¥{formatNumber(analysis.analysis.technical.gann.gann_1x1)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">2x1线:</span>
-                      <span className="font-medium">¥{formatNumber(analysis.analysis.gann.gann_2x1)}</span>
+                      <span className="font-medium">¥{formatNumber(analysis.analysis.technical.gann.gann_2x1)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">趋势:</span>
                       <span className={`font-medium ${
-                        analysis.analysis.gann.trend === 'bullish' ? 'text-green-600' :
-                        analysis.analysis.gann.trend === 'bearish' ? 'text-red-600' : 'text-gray-600'
+                        analysis.analysis.technical.gann.trend === 'bullish' ? 'text-green-600' :
+                        analysis.analysis.technical.gann.trend === 'bearish' ? 'text-red-600' : 'text-gray-600'
                       }`}>
-                        {analysis.analysis.gann.trend === 'bullish' ? '看涨' :
-                         analysis.analysis.gann.trend === 'bearish' ? '看跌' : '中性'}
+                        {analysis.analysis.technical.gann.trend === 'bullish' ? '看涨' :
+                         analysis.analysis.technical.gann.trend === 'bearish' ? '看跌' : '中性'}
                       </span>
                     </div>
                   </div>
@@ -720,9 +720,9 @@ const StockAnalysis = () => {
           )}
 
           {/* Gann Chart */}
-          {analysis.analysis && analysis.analysis.gann && (
+          {analysis.analysis && analysis.analysis.technical && analysis.analysis.technical.gann && (
             <GannChart
-              gannData={analysis.analysis.gann}
+              gannData={analysis.analysis.technical.gann}
               currentPrice={analysis.current_price}
             />
           )}

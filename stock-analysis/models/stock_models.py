@@ -51,8 +51,8 @@ class StockAnalysisResponse(BaseModel):
     name: str
     current_price: float
     change_percent: float
-    analysis: TechnicalIndicators
-    signals: Dict[str, List[str]]
+    analysis: Dict[str, Any]  # 支持技术分析和基本面分析的组合数据
+    signals: Dict[str, Any]   # 支持多种信号类型
     recommendation: str
 
 

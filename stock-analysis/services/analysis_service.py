@@ -52,9 +52,11 @@ class StockAnalysisService:
             )
 
             # 基本面分析（使用模拟数据）
+            logger.info("Starting fundamental analysis...")
             fundamental_data = self._get_mock_fundamental_data(symbol, current_price)
             fundamental_signals = self._generate_mock_fundamental_signals(symbol)
             fundamental_recommendation = self._get_mock_fundamental_recommendation(symbol)
+            logger.info(f"Fundamental analysis completed: {fundamental_recommendation}")
 
             # 生成技术信号
             technical_signals = self._generate_signals(technical_analysis)
@@ -68,8 +70,11 @@ class StockAnalysisService:
             )
 
             # 合并分析数据
+            technical_dict = technical_analysis.dict()
+            # 转换numpy类型为Python原生类型
+            technical_dict = self._convert_numpy_types(technical_dict)
             combined_analysis = {
-                "technical": technical_analysis.dict(),
+                "technical": technical_dict,
                 "fundamental": fundamental_data
             }
 
@@ -403,6 +408,25 @@ class StockAnalysisService:
             ]
 
         return signals[:3]  # 返回前3个信号
+
+    def _convert_numpy_types(self, obj):
+        """递归转换numpy类型为Python原生类型"""
+        import numpy as np
+
+        if isinstance(obj, dict):
+            return {key: self._convert_numpy_types(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_numpy_types(item) for item in obj]
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return obj
 
     def _get_mock_fundamental_recommendation(self, symbol: str) -> str:
         """获取模拟基本面建议"""

@@ -81,8 +81,17 @@ async def get_stock_history(symbol: str, days: int = 30):
         # 转换为JSON格式
         result = []
         for _, row in hist_data.iterrows():
+            # 处理日期字段，确保正确格式化
+            date_value = row['日期']
+            if hasattr(date_value, 'strftime'):
+                # 如果是datetime对象
+                date_str = date_value.strftime('%Y-%m-%d')
+            else:
+                # 如果是字符串，直接使用
+                date_str = str(date_value)
+
             result.append({
-                'date': row['日期'].strftime('%Y-%m-%d'),
+                'date': date_str,
                 'open': float(row['开盘']),
                 'high': float(row['最高']),
                 'low': float(row['最低']),
