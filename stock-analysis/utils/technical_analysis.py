@@ -314,3 +314,197 @@ def calculate_volume_analysis(data: pd.DataFrame) -> Dict[str, Any]:
             "volume_ratio": 1.0,
             "volume_price_signal": "neutral"
         }
+
+
+def calculate_turnover_rate(data: pd.DataFrame, current_price: float) -> Dict[str, Any]:
+    """计算换手率分析"""
+    try:
+        # 获取最近的成交量数据
+        recent_volume = data['成交量'].tail(5).mean()
+        current_volume = data['成交量'].iloc[-1]
+
+        # 模拟流通股本（实际应该从基本面数据获取）
+        # 这里基于股价估算一个合理的流通股本
+        estimated_shares = recent_volume * 100 / (current_price * 0.05)  # 假设平均换手率5%
+
+        # 计算换手率 = 成交量 / 流通股本 * 100%
+        turnover_rate = (current_volume / estimated_shares) * 100
+
+        # 换手率分析
+        if turnover_rate < 3:
+            activity_level = "低迷"
+            market_sentiment = "观望"
+            signal = "neutral"
+        elif 3 <= turnover_rate <= 13:
+            activity_level = "合理"
+            market_sentiment = "正常"
+            signal = "neutral"
+        elif 13 < turnover_rate <= 25:
+            activity_level = "活跃"
+            market_sentiment = "积极"
+            signal = "bullish"
+        else:
+            activity_level = "过热"
+            market_sentiment = "投机"
+            signal = "bearish"
+
+        # 计算5日平均换手率
+        volume_5d = data['成交量'].tail(5)
+        turnover_5d_avg = (volume_5d.mean() / estimated_shares) * 100
+
+        return {
+            "turnover_rate": float(turnover_rate),
+            "turnover_5d_avg": float(turnover_5d_avg),
+            "activity_level": activity_level,
+            "market_sentiment": market_sentiment,
+            "signal": signal,
+            "is_reasonable": 3 <= turnover_rate <= 13
+        }
+    except Exception as e:
+        logger.error(f"Turnover Rate calculation error: {e}")
+        return {
+            "turnover_rate": 5.0,
+            "turnover_5d_avg": 5.0,
+            "activity_level": "合理",
+            "market_sentiment": "正常",
+            "signal": "neutral",
+            "is_reasonable": True
+        }
+
+
+def calculate_elliott_wave(data: pd.DataFrame) -> Dict[str, Any]:
+    """计算艾略特波浪理论分析"""
+    try:
+        close_prices = data['收盘'].values
+        high_prices = data['最高'].values
+        low_prices = data['最低'].values
+
+        # 寻找波峰和波谷
+        def find_peaks_and_troughs(prices, window=5):
+            peaks = []
+            troughs = []
+
+            for i in range(window, len(prices) - window):
+                # 波峰：比前后window个点都高
+                if all(prices[i] >= prices[i-j] for j in range(1, window+1)) and \
+                   all(prices[i] >= prices[i+j] for j in range(1, window+1)):
+                    peaks.append((i, prices[i]))
+
+                # 波谷：比前后window个点都低
+                if all(prices[i] <= prices[i-j] for j in range(1, window+1)) and \
+                   all(prices[i] <= prices[i+j] for j in range(1, window+1)):
+                    troughs.append((i, prices[i]))
+
+            return peaks, troughs
+
+        peaks, troughs = find_peaks_and_troughs(close_prices)
+
+        # 分析波浪结构
+        def analyze_wave_structure(peaks, troughs):
+            if len(peaks) < 3 or len(troughs) < 2:
+                return "数据不足", "neutral", 1
+
+            # 取最近的几个关键点
+            recent_points = sorted(peaks[-3:] + troughs[-2:], key=lambda x: x[0])
+
+            if len(recent_points) < 3:
+                return "数据不足", "neutral", 1
+
+            # 简化的波浪识别
+            price_changes = [recent_points[i+1][1] - recent_points[i][1]
+                           for i in range(len(recent_points)-1)]
+
+            # 判断当前可能处于的波浪位置
+            if len(price_changes) >= 4:
+                # 检查是否符合5波上升或3波下降模式
+                up_waves = sum(1 for change in price_changes if change > 0)
+                down_waves = len(price_changes) - up_waves
+
+                if up_waves >= 3:
+                    current_wave = "第5浪"
+                    trend = "bullish"
+                    wave_position = 5
+                elif down_waves >= 2:
+                    current_wave = "调整浪C"
+                    trend = "bearish"
+                    wave_position = 3
+                else:
+                    current_wave = "第3浪"
+                    trend = "bullish"
+                    wave_position = 3
+            else:
+                current_wave = "第1浪"
+                trend = "neutral"
+                wave_position = 1
+
+            return current_wave, trend, wave_position
+
+        current_wave, wave_trend, wave_position = analyze_wave_structure(peaks, troughs)
+
+        # 计算斐波那契回调位
+        if len(close_prices) >= 20:
+            recent_high = max(close_prices[-20:])
+            recent_low = min(close_prices[-20:])
+            price_range = recent_high - recent_low
+
+            fib_levels = {
+                "23.6%": recent_high - price_range * 0.236,
+                "38.2%": recent_high - price_range * 0.382,
+                "50.0%": recent_high - price_range * 0.5,
+                "61.8%": recent_high - price_range * 0.618,
+                "78.6%": recent_high - price_range * 0.786
+            }
+        else:
+            current_price = close_prices[-1]
+            fib_levels = {
+                "23.6%": current_price * 0.95,
+                "38.2%": current_price * 0.92,
+                "50.0%": current_price * 0.90,
+                "61.8%": current_price * 0.88,
+                "78.6%": current_price * 0.85
+            }
+
+        # 波浪理论预测
+        if wave_position == 5:
+            prediction = "可能即将完成上升5浪，注意回调风险"
+            confidence = "中等"
+        elif wave_position == 3:
+            if wave_trend == "bullish":
+                prediction = "处于主升浪，可继续持有"
+                confidence = "较高"
+            else:
+                prediction = "调整浪可能接近尾声"
+                confidence = "中等"
+        else:
+            prediction = "波浪结构尚不明确，继续观察"
+            confidence = "较低"
+
+        return {
+            "current_wave": current_wave,
+            "wave_trend": wave_trend,
+            "wave_position": wave_position,
+            "fibonacci_levels": fib_levels,
+            "prediction": prediction,
+            "confidence": confidence,
+            "peaks_count": len(peaks),
+            "troughs_count": len(troughs)
+        }
+
+    except Exception as e:
+        logger.error(f"Elliott Wave calculation error: {e}")
+        return {
+            "current_wave": "第1浪",
+            "wave_trend": "neutral",
+            "wave_position": 1,
+            "fibonacci_levels": {
+                "23.6%": 0,
+                "38.2%": 0,
+                "50.0%": 0,
+                "61.8%": 0,
+                "78.6%": 0
+            },
+            "prediction": "波浪分析暂不可用",
+            "confidence": "无",
+            "peaks_count": 0,
+            "troughs_count": 0
+        }

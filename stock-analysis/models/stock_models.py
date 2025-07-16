@@ -43,6 +43,8 @@ class TechnicalIndicators(BaseModel):
     gann: Dict[str, Any]
     ma: Dict[str, Any]
     volume: Dict[str, Any]
+    turnover_rate: Dict[str, Any]  # 换手率分析
+    elliott_wave: Dict[str, Any]   # 艾略特波浪理论分析
 
 
 class StockAnalysisResponse(BaseModel):

@@ -169,7 +169,7 @@ const StockAnalysis = () => {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">股票技术分析</h1>
-        <p className="text-gray-600">基于技术指标和基本面分析的智能股票投资决策支持</p>
+        <p className="text-gray-600">基于10大技术指标、换手率、艾略特波浪理论和基本面分析的智能股票投资决策支持</p>
       </div>
 
       {/* Search Section */}
@@ -704,6 +704,95 @@ const StockAnalysis = () => {
                         {analysis.analysis.technical.gann.trend === 'bullish' ? '看涨' :
                          analysis.analysis.technical.gann.trend === 'bearish' ? '看跌' : '中性'}
                       </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Turnover Rate */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-orange-600" />
+                    <h4 className="font-medium text-gray-900">换手率</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">当日换手率:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.turnover_rate.turnover_rate)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">5日均值:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.technical.turnover_rate.turnover_5d_avg)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">活跃度:</span>
+                      <span className={`font-medium ${
+                        analysis.analysis.technical.turnover_rate.is_reasonable ? 'text-green-600' :
+                        analysis.analysis.technical.turnover_rate.activity_level === '过热' ? 'text-red-600' : 'text-yellow-600'
+                      }`}>
+                        {analysis.analysis.technical.turnover_rate.activity_level}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">市场情绪:</span>
+                      <span className="font-medium text-gray-700">
+                        {analysis.analysis.technical.turnover_rate.market_sentiment}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Elliott Wave */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-indigo-600" />
+                    <h4 className="font-medium text-gray-900">艾略特波浪</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">当前波浪:</span>
+                      <span className="font-medium text-indigo-600">
+                        {analysis.analysis.technical.elliott_wave.current_wave}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">波浪趋势:</span>
+                      <span className={`font-medium ${
+                        analysis.analysis.technical.elliott_wave.wave_trend === 'bullish' ? 'text-green-600' :
+                        analysis.analysis.technical.elliott_wave.wave_trend === 'bearish' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {analysis.analysis.technical.elliott_wave.wave_trend === 'bullish' ? '上升' :
+                         analysis.analysis.technical.elliott_wave.wave_trend === 'bearish' ? '下降' : '中性'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">预测信心:</span>
+                      <span className="font-medium text-gray-700">
+                        {analysis.analysis.technical.elliott_wave.confidence}
+                      </span>
+                    </div>
+                    <div className="mt-2 p-2 bg-indigo-50 rounded text-xs text-indigo-700">
+                      {analysis.analysis.technical.elliott_wave.prediction}
+                    </div>
+                    <div className="mt-3">
+                      <h5 className="text-xs font-medium text-gray-600 mb-2">斐波那契回调位</h5>
+                      <div className="grid grid-cols-2 gap-1 text-xs">
+                        <div className="flex justify-between">
+                          <span>23.6%:</span>
+                          <span>¥{formatNumber(analysis.analysis.technical.elliott_wave.fibonacci_levels['23.6%'])}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>38.2%:</span>
+                          <span>¥{formatNumber(analysis.analysis.technical.elliott_wave.fibonacci_levels['38.2%'])}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>50.0%:</span>
+                          <span>¥{formatNumber(analysis.analysis.technical.elliott_wave.fibonacci_levels['50.0%'])}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>61.8%:</span>
+                          <span>¥{formatNumber(analysis.analysis.technical.elliott_wave.fibonacci_levels['61.8%'])}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

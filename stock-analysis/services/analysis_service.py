@@ -12,7 +12,7 @@ from models.stock_models import TechnicalIndicators, StockAnalysisResponse
 from utils.technical_analysis import (
     calculate_macd, calculate_kdj, calculate_rsi, calculate_bollinger_bands,
     calculate_williams_r, calculate_gann_lines, calculate_moving_averages,
-    calculate_volume_analysis
+    calculate_volume_analysis, calculate_turnover_rate, calculate_elliott_wave
 )
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,9 @@ class StockAnalysisService:
             gann = calculate_gann_lines(hist_data)
             ma = calculate_moving_averages(hist_data)
             volume = calculate_volume_analysis(hist_data)
-            
+            turnover_rate = calculate_turnover_rate(hist_data, current_price)
+            elliott_wave = calculate_elliott_wave(hist_data)
+
             # 创建技术指标对象
             technical_analysis = TechnicalIndicators(
                 macd=macd,
@@ -48,7 +50,9 @@ class StockAnalysisService:
                 wr=wr,
                 gann=gann,
                 ma=ma,
-                volume=volume
+                volume=volume,
+                turnover_rate=turnover_rate,
+                elliott_wave=elliott_wave
             )
 
             # 基本面分析（使用模拟数据）

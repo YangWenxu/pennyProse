@@ -23,6 +23,7 @@ const StockChart = ({ symbol }) => {
       }
       
       const data = await response.json()
+      console.log('Chart data received:', data) // 添加调试日志
       setChartData(data)
     } catch (err) {
       console.error('Chart data error:', err)
@@ -94,7 +95,7 @@ const StockChart = ({ symbol }) => {
     )
   }
 
-  if (!chartData || !chartData.history || chartData.history.length === 0) {
+  if (!chartData || !chartData.data || chartData.data.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-center h-64">
@@ -104,7 +105,7 @@ const StockChart = ({ symbol }) => {
     )
   }
 
-  const history = chartData.history.slice(-30) // 显示最近30天
+  const history = chartData.data.slice(-30) // 显示最近30天
   const prices = history.map(item => [item.high, item.low, item.open, item.close]).flat()
   const maxPrice = Math.max(...prices)
   const minPrice = Math.min(...prices)
