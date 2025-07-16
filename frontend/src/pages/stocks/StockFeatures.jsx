@@ -1,7 +1,7 @@
 import {
   TrendingUp, BarChart3, Target, Gauge, LineChart, Activity,
   Building2, DollarSign, Award, Users, Star, Bell,
-  CheckCircle, ArrowRight, Zap
+  CheckCircle, ArrowRight, Zap, BarChart2, TrendingDown
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -38,14 +38,100 @@ const StockFeatures = () => {
   ]
 
   const technicalIndicators = [
-    { name: 'MACD', icon: Activity, description: '指数移动平均收敛发散', color: 'text-blue-600' },
-    { name: 'KDJ', icon: BarChart3, description: '随机指标', color: 'text-purple-600' },
-    { name: 'RSI', icon: Gauge, description: '相对强弱指标', color: 'text-indigo-600' },
-    { name: '布林带', icon: Target, description: '价格通道指标', color: 'text-cyan-600' },
-    { name: '威廉%R', icon: LineChart, description: '威廉指标', color: 'text-pink-600' },
-    { name: '移动平均', icon: TrendingUp, description: '趋势跟踪指标', color: 'text-green-600' },
-    { name: '量能分析', icon: DollarSign, description: '成交量分析', color: 'text-orange-600' },
-    { name: '江恩线', icon: LineChart, description: '江恩角度线分析', color: 'text-purple-600' }
+    // 经典技术指标 (5个)
+    {
+      name: 'MACD',
+      icon: Activity,
+      description: '指数移动平均收敛发散 - 趋势跟踪和动量分析',
+      color: 'text-blue-600',
+      category: '经典指标'
+    },
+    {
+      name: 'KDJ',
+      icon: BarChart3,
+      description: '随机指标 - 超买超卖判断',
+      color: 'text-purple-600',
+      category: '经典指标'
+    },
+    {
+      name: 'RSI',
+      icon: Gauge,
+      description: '相对强弱指标 - 价格强弱度量',
+      color: 'text-indigo-600',
+      category: '经典指标'
+    },
+    {
+      name: '布林带',
+      icon: Target,
+      description: '价格通道指标 - 波动性和支撑阻力分析',
+      color: 'text-cyan-600',
+      category: '经典指标'
+    },
+    {
+      name: '威廉%R',
+      icon: TrendingDown,
+      description: '威廉指标 - 超买超卖确认',
+      color: 'text-pink-600',
+      category: '经典指标'
+    },
+    // 趋势分析方法 (5个)
+    {
+      name: '移动平均',
+      icon: TrendingUp,
+      description: '均线系统 - 趋势方向判断和多头排列',
+      color: 'text-green-600',
+      category: '趋势分析'
+    },
+    {
+      name: '量能分析',
+      icon: BarChart3,
+      description: '成交量分析 - 量价配合确认',
+      color: 'text-orange-600',
+      category: '趋势分析'
+    },
+    {
+      name: '江恩线',
+      icon: LineChart,
+      description: '江恩角度线 - 时间价格关系分析',
+      color: 'text-purple-600',
+      category: '趋势分析'
+    },
+    {
+      name: '爱德华兹趋势',
+      icon: TrendingUp,
+      description: '趋势线分析 - 支撑阻力位和经典形态识别',
+      color: 'text-blue-600',
+      category: '趋势分析'
+    },
+    {
+      name: '艾略特波浪',
+      icon: Activity,
+      description: '波浪理论 - 波浪结构和周期分析',
+      color: 'text-indigo-600',
+      category: '趋势分析'
+    },
+    // 现代分析理论 (3个)
+    {
+      name: '换手率分析',
+      icon: DollarSign,
+      description: '市场活跃度 - 资金流向和交易热度',
+      color: 'text-orange-600',
+      category: '现代分析'
+    },
+    {
+      name: '墨菲市场间',
+      icon: BarChart2,
+      description: '多时间框架 - 短中长期趋势一致性分析',
+      color: 'text-teal-600',
+      category: '现代分析'
+    },
+    {
+      name: '日本蜡烛图',
+      icon: BarChart3,
+      description: 'K线形态 - 反转信号和持续形态识别',
+      color: 'text-red-600',
+      category: '现代分析'
+    }
   ]
 
   const fundamentalMetrics = [
@@ -61,8 +147,12 @@ const StockFeatures = () => {
     {
       title: '技术分析',
       icon: BarChart3,
-      description: '8种专业技术指标',
-      items: ['MACD', 'KDJ', 'RSI', '布林带', '威廉%R', '移动平均', '量能分析', '江恩线'],
+      description: '13大专业技术分析方法',
+      items: [
+        '经典指标：MACD、KDJ、RSI、布林带、威廉%R',
+        '趋势分析：均线、量能、江恩线、爱德华兹趋势、艾略特波浪',
+        '现代分析：换手率、墨菲市场间、日本蜡烛图'
+      ],
       link: '/stock-analysis'
     },
     {
@@ -110,8 +200,13 @@ const StockFeatures = () => {
           专业股票分析系统
         </h1>
         <p className="text-xl text-gray-600 mb-8">
-          集技术分析、基本面分析、图表展示于一体的综合股票分析平台
+          集成13大技术分析方法、基本面分析、三大经典理论于一体的华尔街级股票分析平台
         </p>
+        <div className="bg-blue-50 rounded-lg p-4 max-w-4xl mx-auto">
+          <p className="text-blue-800 font-medium">
+            🚀 新增三大经典技术分析理论：爱德华兹趋势分析、墨菲市场间分析、日本蜡烛图分析
+          </p>
+        </div>
       </div>
 
       {/* Stock Navigation */}
@@ -170,17 +265,156 @@ const StockFeatures = () => {
 
       {/* Technical Indicators */}
       <div className="mb-16">
-        <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">技术指标详解</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {technicalIndicators.map((indicator, index) => (
-            <div key={index} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-6 border border-gray-200">
-              <div className="flex items-center gap-3 mb-3">
-                <indicator.icon className={`w-6 h-6 ${indicator.color}`} />
-                <h3 className="font-semibold text-gray-900">{indicator.name}</h3>
+        <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">13大技术分析方法详解</h2>
+
+        {/* 经典技术指标 */}
+        <div className="mb-12">
+          <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-blue-600" />
+            经典技术指标 (5个)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {technicalIndicators.filter(indicator => indicator.category === '经典指标').map((indicator, index) => (
+              <div key={index} className="bg-gradient-to-br from-blue-50 to-white rounded-lg p-6 border border-blue-200">
+                <div className="flex items-center gap-3 mb-3">
+                  <indicator.icon className={`w-6 h-6 ${indicator.color}`} />
+                  <h4 className="font-semibold text-gray-900">{indicator.name}</h4>
+                </div>
+                <p className="text-sm text-gray-600">{indicator.description}</p>
               </div>
-              <p className="text-sm text-gray-600">{indicator.description}</p>
+            ))}
+          </div>
+        </div>
+
+        {/* 趋势分析方法 */}
+        <div className="mb-12">
+          <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-green-600" />
+            趋势分析方法 (5个)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {technicalIndicators.filter(indicator => indicator.category === '趋势分析').map((indicator, index) => (
+              <div key={index} className="bg-gradient-to-br from-green-50 to-white rounded-lg p-6 border border-green-200">
+                <div className="flex items-center gap-3 mb-3">
+                  <indicator.icon className={`w-6 h-6 ${indicator.color}`} />
+                  <h4 className="font-semibold text-gray-900">{indicator.name}</h4>
+                </div>
+                <p className="text-sm text-gray-600">{indicator.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 现代分析理论 */}
+        <div className="mb-12">
+          <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+            <Zap className="w-6 h-6 text-purple-600" />
+            现代分析理论 (3个)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {technicalIndicators.filter(indicator => indicator.category === '现代分析').map((indicator, index) => (
+              <div key={index} className="bg-gradient-to-br from-purple-50 to-white rounded-lg p-6 border border-purple-200">
+                <div className="flex items-center gap-3 mb-3">
+                  <indicator.icon className={`w-6 h-6 ${indicator.color}`} />
+                  <h4 className="font-semibold text-gray-900">{indicator.name}</h4>
+                </div>
+                <p className="text-sm text-gray-600">{indicator.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Classical Analysis Theories */}
+      <div className="mb-16">
+        <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">三大经典技术分析理论</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Edwards Trend Analysis */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+            <div className="flex items-center gap-3 mb-4">
+              <TrendingUp className="w-8 h-8 text-blue-600" />
+              <div>
+                <h3 className="font-bold text-gray-900">爱德华兹趋势分析</h3>
+                <p className="text-sm text-blue-600">Robert D. Edwards</p>
+              </div>
             </div>
-          ))}
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>趋势线分析：计算趋势斜率和相关性</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>支撑阻力位：自动识别关键价位</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>经典形态：头肩顶底、双顶底识别</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>趋势强度：强/中等/弱趋势评估</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Murphy Intermarket Analysis */}
+          <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-6 border border-teal-200">
+            <div className="flex items-center gap-3 mb-4">
+              <BarChart2 className="w-8 h-8 text-teal-600" />
+              <div>
+                <h3 className="font-bold text-gray-900">墨菲市场间分析</h3>
+                <p className="text-sm text-teal-600">John J. Murphy</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>多时间框架：短期、中期、长期分析</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>趋势一致性：多头/空头排列判断</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>动量分析：多周期动量强度评级</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>相对强度：个股与大盘比较</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Japanese Candlestick Analysis */}
+          <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-lg p-6 border border-red-200">
+            <div className="flex items-center gap-3 mb-4">
+              <BarChart3 className="w-8 h-8 text-red-600" />
+              <div>
+                <h3 className="font-bold text-gray-900">日本蜡烛图分析</h3>
+                <p className="text-sm text-red-600">Japanese Candlestick</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>单根K线：十字星、锤子线、射击之星</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>组合形态：早晨之星、黄昏之星</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>反转信号：吞没形态、刺透形态</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                <span>概率分析：反转和持续概率评估</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -209,7 +443,7 @@ const StockFeatures = () => {
               <BarChart3 className="w-8 h-8 text-blue-600" />
             </div>
             <h3 className="font-semibold text-gray-900 mb-2">专业分析</h3>
-            <p className="text-sm text-gray-600">8种技术指标 + 完整基本面分析</p>
+            <p className="text-sm text-gray-600">13大技术分析方法 + 三大经典理论 + 完整基本面分析</p>
           </div>
           <div className="text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">

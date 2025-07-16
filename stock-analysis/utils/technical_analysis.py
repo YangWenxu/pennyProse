@@ -508,3 +508,544 @@ def calculate_elliott_wave(data: pd.DataFrame) -> Dict[str, Any]:
             "peaks_count": 0,
             "troughs_count": 0
         }
+
+
+def analyze_edwards_trend(data: pd.DataFrame) -> Dict[str, Any]:
+    """罗伯特·D·爱德华兹股市趋势技术分析"""
+    try:
+        close_prices = data['收盘'].values
+        high_prices = data['最高'].values
+        low_prices = data['最低'].values
+        volume = data['成交量'].values
+
+        # 1. 趋势线分析
+        def calculate_trendlines(prices, window=20):
+            if len(prices) < window:
+                return None, None, "数据不足"
+
+            recent_prices = prices[-window:]
+            x = np.arange(len(recent_prices))
+
+            # 计算趋势线斜率
+            slope, intercept = np.polyfit(x, recent_prices, 1)
+
+            # 趋势强度
+            correlation = np.corrcoef(x, recent_prices)[0, 1]
+
+            if slope > 0 and correlation > 0.7:
+                trend_direction = "上升趋势"
+                trend_strength = "强"
+            elif slope > 0 and correlation > 0.3:
+                trend_direction = "上升趋势"
+                trend_strength = "中等"
+            elif slope < 0 and correlation < -0.7:
+                trend_direction = "下降趋势"
+                trend_strength = "强"
+            elif slope < 0 and correlation < -0.3:
+                trend_direction = "下降趋势"
+                trend_strength = "中等"
+            else:
+                trend_direction = "横盘整理"
+                trend_strength = "弱"
+
+            return slope, correlation, trend_direction, trend_strength
+
+        slope, correlation, trend_direction, trend_strength = calculate_trendlines(close_prices)
+
+        # 2. 支撑阻力位分析
+        def find_support_resistance(highs, lows, closes, window=10):
+            support_levels = []
+            resistance_levels = []
+
+            for i in range(window, len(closes) - window):
+                # 支撑位：局部最低点
+                if lows[i] == min(lows[i-window:i+window+1]):
+                    support_levels.append(lows[i])
+
+                # 阻力位：局部最高点
+                if highs[i] == max(highs[i-window:i+window+1]):
+                    resistance_levels.append(highs[i])
+
+            # 取最近的关键位
+            current_price = closes[-1]
+            nearby_support = [s for s in support_levels if s < current_price]
+            nearby_resistance = [r for r in resistance_levels if r > current_price]
+
+            key_support = max(nearby_support) if nearby_support else min(lows[-20:])
+            key_resistance = min(nearby_resistance) if nearby_resistance else max(highs[-20:])
+
+            return key_support, key_resistance
+
+        key_support, key_resistance = find_support_resistance(high_prices, low_prices, close_prices)
+
+        # 3. 形态识别（简化版）
+        def identify_patterns(closes, highs, lows):
+            if len(closes) < 20:
+                return "数据不足", "neutral"
+
+            recent_closes = closes[-20:]
+            recent_highs = highs[-20:]
+            recent_lows = lows[-20:]
+
+            # 头肩顶/底识别
+            max_idx = np.argmax(recent_highs)
+            min_idx = np.argmin(recent_lows)
+
+            if max_idx > 5 and max_idx < 15:
+                left_shoulder = max(recent_highs[:max_idx-3])
+                right_shoulder = max(recent_highs[max_idx+3:])
+                head = recent_highs[max_idx]
+
+                if head > left_shoulder * 1.02 and head > right_shoulder * 1.02:
+                    return "头肩顶形态", "bearish"
+
+            if min_idx > 5 and min_idx < 15:
+                left_shoulder = min(recent_lows[:min_idx-3])
+                right_shoulder = min(recent_lows[min_idx+3:])
+                head = recent_lows[min_idx]
+
+                if head < left_shoulder * 0.98 and head < right_shoulder * 0.98:
+                    return "头肩底形态", "bullish"
+
+            # 双顶/双底识别
+            peaks = []
+            troughs = []
+
+            for i in range(2, len(recent_closes)-2):
+                if recent_closes[i] > recent_closes[i-1] and recent_closes[i] > recent_closes[i+1]:
+                    peaks.append((i, recent_closes[i]))
+                if recent_closes[i] < recent_closes[i-1] and recent_closes[i] < recent_closes[i+1]:
+                    troughs.append((i, recent_closes[i]))
+
+            if len(peaks) >= 2:
+                last_two_peaks = peaks[-2:]
+                if abs(last_two_peaks[0][1] - last_two_peaks[1][1]) / last_two_peaks[0][1] < 0.03:
+                    return "双顶形态", "bearish"
+
+            if len(troughs) >= 2:
+                last_two_troughs = troughs[-2:]
+                if abs(last_two_troughs[0][1] - last_two_troughs[1][1]) / last_two_troughs[0][1] < 0.03:
+                    return "双底形态", "bullish"
+
+            return "无明显形态", "neutral"
+
+        pattern, pattern_signal = identify_patterns(close_prices, high_prices, low_prices)
+
+        # 4. 成交量确认
+        volume_trend = "放量" if volume[-5:].mean() > volume[-20:-5].mean() else "缩量"
+
+        return {
+            "trend_direction": trend_direction,
+            "trend_strength": trend_strength,
+            "trend_slope": float(slope) if slope else 0,
+            "trend_correlation": float(correlation) if correlation else 0,
+            "key_support": float(key_support),
+            "key_resistance": float(key_resistance),
+            "pattern": pattern,
+            "pattern_signal": pattern_signal,
+            "volume_trend": volume_trend,
+            "analysis_confidence": "高" if abs(correlation or 0) > 0.7 else "中等" if abs(correlation or 0) > 0.3 else "低"
+        }
+
+    except Exception as e:
+        logger.error(f"Edwards Trend Analysis error: {e}")
+        return {
+            "trend_direction": "横盘整理",
+            "trend_strength": "中等",
+            "trend_slope": 0,
+            "trend_correlation": 0,
+            "key_support": 0,
+            "key_resistance": 0,
+            "pattern": "无明显形态",
+            "pattern_signal": "neutral",
+            "volume_trend": "正常",
+            "analysis_confidence": "中等"
+        }
+
+
+def analyze_murphy_intermarket(data: pd.DataFrame) -> Dict[str, Any]:
+    """约翰·墨菲金融市场技术分析（市场间分析）"""
+    try:
+        close_prices = data['收盘'].values
+        high_prices = data['最高'].values
+        low_prices = data['最低'].values
+        volume = data['成交量'].values
+
+        # 1. 多时间框架分析
+        def multi_timeframe_analysis(prices):
+            if len(prices) < 60:
+                return "数据不足", "neutral", "neutral", "neutral"
+
+            # 短期趋势（5日）
+            short_ma = np.mean(prices[-5:])
+            short_prev = np.mean(prices[-10:-5])
+            short_trend = "上升" if short_ma > short_prev else "下降"
+
+            # 中期趋势（20日）
+            medium_ma = np.mean(prices[-20:])
+            medium_prev = np.mean(prices[-40:-20])
+            medium_trend = "上升" if medium_ma > medium_prev else "下降"
+
+            # 长期趋势（60日）
+            long_ma = np.mean(prices[-60:])
+            long_prev = np.mean(prices[-120:-60]) if len(prices) >= 120 else np.mean(prices[:-60])
+            long_trend = "上升" if long_ma > long_prev else "下降"
+
+            # 趋势一致性分析
+            trends = [short_trend, medium_trend, long_trend]
+            if trends.count("上升") >= 2:
+                overall_trend = "多头排列"
+            elif trends.count("下降") >= 2:
+                overall_trend = "空头排列"
+            else:
+                overall_trend = "趋势分歧"
+
+            return overall_trend, short_trend, medium_trend, long_trend
+
+        overall_trend, short_trend, medium_trend, long_trend = multi_timeframe_analysis(close_prices)
+
+        # 2. 动量分析
+        def momentum_analysis(prices, periods=[5, 10, 20]):
+            momentum_signals = []
+
+            for period in periods:
+                if len(prices) > period:
+                    current_momentum = prices[-1] / prices[-period-1] - 1
+                    momentum_signals.append(current_momentum)
+
+            avg_momentum = np.mean(momentum_signals) if momentum_signals else 0
+
+            if avg_momentum > 0.05:
+                momentum_strength = "强劲上涨"
+                momentum_signal = "bullish"
+            elif avg_momentum > 0.02:
+                momentum_strength = "温和上涨"
+                momentum_signal = "bullish"
+            elif avg_momentum < -0.05:
+                momentum_strength = "强劲下跌"
+                momentum_signal = "bearish"
+            elif avg_momentum < -0.02:
+                momentum_strength = "温和下跌"
+                momentum_signal = "bearish"
+            else:
+                momentum_strength = "横盘整理"
+                momentum_signal = "neutral"
+
+            return momentum_strength, momentum_signal, float(avg_momentum)
+
+        momentum_strength, momentum_signal, avg_momentum = momentum_analysis(close_prices)
+
+        # 3. 相对强度分析（与大盘比较，这里简化处理）
+        def relative_strength_analysis(prices):
+            if len(prices) < 20:
+                return "数据不足", 0
+
+            # 计算20日涨跌幅
+            price_change = (prices[-1] / prices[-20] - 1) * 100
+
+            # 模拟大盘涨跌幅（实际应该获取指数数据）
+            market_change = price_change * 0.8  # 假设个股表现略好于大盘
+
+            relative_strength = price_change - market_change
+
+            if relative_strength > 5:
+                rs_rating = "强于大盘"
+            elif relative_strength > 0:
+                rs_rating = "略强于大盘"
+            elif relative_strength > -5:
+                rs_rating = "略弱于大盘"
+            else:
+                rs_rating = "弱于大盘"
+
+            return rs_rating, float(relative_strength)
+
+        rs_rating, relative_strength = relative_strength_analysis(close_prices)
+
+        # 4. 市场结构分析
+        def market_structure_analysis(highs, lows, closes):
+            if len(closes) < 20:
+                return "数据不足", "neutral"
+
+            recent_highs = highs[-10:]
+            recent_lows = lows[-10:]
+
+            # 高点分析
+            higher_highs = sum(1 for i in range(1, len(recent_highs)) if recent_highs[i] > recent_highs[i-1])
+            lower_highs = sum(1 for i in range(1, len(recent_highs)) if recent_highs[i] < recent_highs[i-1])
+
+            # 低点分析
+            higher_lows = sum(1 for i in range(1, len(recent_lows)) if recent_lows[i] > recent_lows[i-1])
+            lower_lows = sum(1 for i in range(1, len(recent_lows)) if recent_lows[i] < recent_lows[i-1])
+
+            if higher_highs > lower_highs and higher_lows > lower_lows:
+                structure = "上升结构"
+                structure_signal = "bullish"
+            elif lower_highs > higher_highs and lower_lows > higher_lows:
+                structure = "下降结构"
+                structure_signal = "bearish"
+            else:
+                structure = "震荡结构"
+                structure_signal = "neutral"
+
+            return structure, structure_signal
+
+        market_structure, structure_signal = market_structure_analysis(high_prices, low_prices, close_prices)
+
+        # 5. 综合评分
+        signals = [momentum_signal, structure_signal]
+        bullish_count = signals.count("bullish")
+        bearish_count = signals.count("bearish")
+
+        if bullish_count > bearish_count:
+            overall_signal = "bullish"
+            confidence = "高" if bullish_count >= 2 else "中等"
+        elif bearish_count > bullish_count:
+            overall_signal = "bearish"
+            confidence = "高" if bearish_count >= 2 else "中等"
+        else:
+            overall_signal = "neutral"
+            confidence = "中等"
+
+        return {
+            "overall_trend": overall_trend,
+            "short_trend": short_trend,
+            "medium_trend": medium_trend,
+            "long_trend": long_trend,
+            "momentum_strength": momentum_strength,
+            "momentum_signal": momentum_signal,
+            "avg_momentum": avg_momentum,
+            "relative_strength_rating": rs_rating,
+            "relative_strength": relative_strength,
+            "market_structure": market_structure,
+            "structure_signal": structure_signal,
+            "overall_signal": overall_signal,
+            "confidence": confidence
+        }
+
+    except Exception as e:
+        logger.error(f"Murphy Intermarket Analysis error: {e}")
+        return {
+            "overall_trend": "趋势分歧",
+            "short_trend": "横盘",
+            "medium_trend": "横盘",
+            "long_trend": "横盘",
+            "momentum_strength": "横盘整理",
+            "momentum_signal": "neutral",
+            "avg_momentum": 0,
+            "relative_strength_rating": "与大盘同步",
+            "relative_strength": 0,
+            "market_structure": "震荡结构",
+            "structure_signal": "neutral",
+            "overall_signal": "neutral",
+            "confidence": "中等"
+        }
+
+
+def analyze_japanese_candlestick(data: pd.DataFrame) -> Dict[str, Any]:
+    """日本蜡烛图技术分析"""
+    try:
+        open_prices = data['开盘'].values
+        high_prices = data['最高'].values
+        low_prices = data['最低'].values
+        close_prices = data['收盘'].values
+
+        if len(close_prices) < 5:
+            return {
+                "current_pattern": "数据不足",
+                "pattern_signal": "neutral",
+                "pattern_strength": "无",
+                "reversal_probability": "无",
+                "continuation_probability": "无",
+                "key_patterns": [],
+                "overall_sentiment": "neutral"
+            }
+
+        # 获取最近几根K线
+        recent_open = open_prices[-5:]
+        recent_high = high_prices[-5:]
+        recent_low = low_prices[-5:]
+        recent_close = close_prices[-5:]
+
+        patterns_found = []
+
+        # 1. 单根K线形态识别
+        def identify_single_candle_patterns(o, h, l, c, index=-1):
+            patterns = []
+
+            # 当前K线数据
+            open_price = o[index]
+            high_price = h[index]
+            low_price = l[index]
+            close_price = c[index]
+
+            body = abs(close_price - open_price)
+            upper_shadow = high_price - max(open_price, close_price)
+            lower_shadow = min(open_price, close_price) - low_price
+            total_range = high_price - low_price
+
+            if total_range == 0:
+                return patterns
+
+            # 十字星
+            if body / total_range < 0.1:
+                patterns.append(("十字星", "reversal", "中等"))
+
+            # 锤子线/上吊线
+            elif (lower_shadow > body * 2 and upper_shadow < body * 0.5):
+                if close_price > open_price:
+                    patterns.append(("锤子线", "bullish", "强"))
+                else:
+                    patterns.append(("上吊线", "bearish", "强"))
+
+            # 射击之星/倒锤子
+            elif (upper_shadow > body * 2 and lower_shadow < body * 0.5):
+                if close_price < open_price:
+                    patterns.append(("射击之星", "bearish", "强"))
+                else:
+                    patterns.append(("倒锤子", "bullish", "中等"))
+
+            # 长阳线/长阴线
+            elif body / total_range > 0.7:
+                if close_price > open_price:
+                    patterns.append(("长阳线", "bullish", "强"))
+                else:
+                    patterns.append(("长阴线", "bearish", "强"))
+
+            # 纺锤线
+            elif (upper_shadow > body and lower_shadow > body):
+                patterns.append(("纺锤线", "neutral", "弱"))
+
+            return patterns
+
+        # 2. 多根K线组合形态识别
+        def identify_multi_candle_patterns(o, h, l, c):
+            patterns = []
+
+            if len(c) < 3:
+                return patterns
+
+            # 早晨之星/黄昏之星（三根K线）
+            if len(c) >= 3:
+                first_body = abs(c[-3] - o[-3])
+                second_body = abs(c[-2] - o[-2])
+                third_body = abs(c[-1] - o[-1])
+
+                # 早晨之星
+                if (c[-3] < o[-3] and  # 第一根阴线
+                    second_body < first_body * 0.5 and  # 第二根小实体
+                    c[-1] > o[-1] and  # 第三根阳线
+                    c[-1] > (c[-3] + o[-3]) / 2):  # 第三根收盘价超过第一根中点
+                    patterns.append(("早晨之星", "bullish", "强"))
+
+                # 黄昏之星
+                elif (c[-3] > o[-3] and  # 第一根阳线
+                      second_body < first_body * 0.5 and  # 第二根小实体
+                      c[-1] < o[-1] and  # 第三根阴线
+                      c[-1] < (c[-3] + o[-3]) / 2):  # 第三根收盘价低于第一根中点
+                    patterns.append(("黄昏之星", "bearish", "强"))
+
+            # 吞没形态（两根K线）
+            if len(c) >= 2:
+                prev_body = abs(c[-2] - o[-2])
+                curr_body = abs(c[-1] - o[-1])
+
+                # 看涨吞没
+                if (c[-2] < o[-2] and  # 前一根阴线
+                    c[-1] > o[-1] and  # 当前阳线
+                    o[-1] < c[-2] and  # 当前开盘低于前收盘
+                    c[-1] > o[-2]):    # 当前收盘高于前开盘
+                    patterns.append(("看涨吞没", "bullish", "强"))
+
+                # 看跌吞没
+                elif (c[-2] > o[-2] and  # 前一根阳线
+                      c[-1] < o[-1] and  # 当前阴线
+                      o[-1] > c[-2] and  # 当前开盘高于前收盘
+                      c[-1] < o[-2]):    # 当前收盘低于前开盘
+                    patterns.append(("看跌吞没", "bearish", "强"))
+
+            # 乌云盖顶/刺透形态
+            if len(c) >= 2:
+                # 乌云盖顶
+                if (c[-2] > o[-2] and  # 前一根阳线
+                    c[-1] < o[-1] and  # 当前阴线
+                    o[-1] > h[-2] * 0.99 and  # 当前开盘接近前高点
+                    c[-1] < (c[-2] + o[-2]) / 2):  # 当前收盘低于前K线中点
+                    patterns.append(("乌云盖顶", "bearish", "强"))
+
+                # 刺透形态
+                elif (c[-2] < o[-2] and  # 前一根阴线
+                      c[-1] > o[-1] and  # 当前阳线
+                      o[-1] < l[-2] * 1.01 and  # 当前开盘接近前低点
+                      c[-1] > (c[-2] + o[-2]) / 2):  # 当前收盘高于前K线中点
+                    patterns.append(("刺透形态", "bullish", "强"))
+
+            return patterns
+
+        # 识别形态
+        single_patterns = identify_single_candle_patterns(recent_open, recent_high, recent_low, recent_close)
+        multi_patterns = identify_multi_candle_patterns(recent_open, recent_high, recent_low, recent_close)
+
+        all_patterns = single_patterns + multi_patterns
+        patterns_found = all_patterns
+
+        # 3. 综合分析
+        if not patterns_found:
+            current_pattern = "普通K线"
+            pattern_signal = "neutral"
+            pattern_strength = "弱"
+        else:
+            # 取最重要的形态
+            strongest_pattern = max(patterns_found, key=lambda x: {"强": 3, "中等": 2, "弱": 1}[x[2]])
+            current_pattern = strongest_pattern[0]
+            pattern_signal = strongest_pattern[1]
+            pattern_strength = strongest_pattern[2]
+
+        # 4. 反转和持续概率评估
+        bullish_patterns = [p for p in patterns_found if p[1] == "bullish"]
+        bearish_patterns = [p for p in patterns_found if p[1] == "bearish"]
+        reversal_patterns = [p for p in patterns_found if p[1] == "reversal"]
+
+        if bullish_patterns:
+            reversal_probability = "看涨反转概率较高"
+            continuation_probability = "上涨持续概率中等"
+        elif bearish_patterns:
+            reversal_probability = "看跌反转概率较高"
+            continuation_probability = "下跌持续概率中等"
+        elif reversal_patterns:
+            reversal_probability = "反转概率中等"
+            continuation_probability = "持续概率较低"
+        else:
+            reversal_probability = "反转概率较低"
+            continuation_probability = "持续概率中等"
+
+        # 5. 整体情绪判断
+        if len(bullish_patterns) > len(bearish_patterns):
+            overall_sentiment = "bullish"
+        elif len(bearish_patterns) > len(bullish_patterns):
+            overall_sentiment = "bearish"
+        else:
+            overall_sentiment = "neutral"
+
+        return {
+            "current_pattern": current_pattern,
+            "pattern_signal": pattern_signal,
+            "pattern_strength": pattern_strength,
+            "reversal_probability": reversal_probability,
+            "continuation_probability": continuation_probability,
+            "key_patterns": [{"name": p[0], "signal": p[1], "strength": p[2]} for p in patterns_found[:3]],
+            "overall_sentiment": overall_sentiment,
+            "patterns_count": len(patterns_found)
+        }
+
+    except Exception as e:
+        logger.error(f"Japanese Candlestick Analysis error: {e}")
+        return {
+            "current_pattern": "分析错误",
+            "pattern_signal": "neutral",
+            "pattern_strength": "无",
+            "reversal_probability": "无法判断",
+            "continuation_probability": "无法判断",
+            "key_patterns": [],
+            "overall_sentiment": "neutral",
+            "patterns_count": 0
+        }

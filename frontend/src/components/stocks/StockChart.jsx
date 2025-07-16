@@ -58,7 +58,7 @@ const StockChart = ({ symbol }) => {
           y1={highY}
           x2={x + candleWidth / 2}
           y2={lowY}
-          stroke={isRising ? '#10b981' : '#ef4444'}
+          stroke={isRising ? '#ef4444' : '#10b981'}
           strokeWidth="1"
         />
         {/* 实体 */}
@@ -67,8 +67,8 @@ const StockChart = ({ symbol }) => {
           y={bodyTop}
           width={candleWidth}
           height={Math.max(bodyHeight, 1)}
-          fill={isRising ? '#10b981' : '#ef4444'}
-          stroke={isRising ? '#10b981' : '#ef4444'}
+          fill={isRising ? '#ef4444' : '#10b981'}
+          stroke={isRising ? '#ef4444' : '#10b981'}
         />
       </g>
     )
@@ -122,12 +122,12 @@ const StockChart = ({ symbol }) => {
         <h3 className="text-lg font-semibold text-gray-900">K线图 ({symbol})</h3>
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-4 h-4 text-green-600" />
-            <span className="text-green-600">{risingDays}天上涨</span>
+            <TrendingUp className="w-4 h-4 text-red-600" />
+            <span className="text-red-600">{risingDays}天上涨</span>
           </div>
           <div className="flex items-center gap-1">
-            <TrendingDown className="w-4 h-4 text-red-600" />
-            <span className="text-red-600">{fallingDays}天下跌</span>
+            <TrendingDown className="w-4 h-4 text-green-600" />
+            <span className="text-green-600">{fallingDays}天下跌</span>
           </div>
         </div>
       </div>
@@ -190,19 +190,27 @@ const StockChart = ({ symbol }) => {
       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
         <div>
           <span className="text-gray-600">最高价: </span>
-          <span className="font-medium text-red-600">{maxPrice.toFixed(2)}</span>
+          <span className="font-medium text-gray-900">{maxPrice.toFixed(2)}</span>
         </div>
         <div>
           <span className="text-gray-600">最低价: </span>
-          <span className="font-medium text-green-600">{minPrice.toFixed(2)}</span>
+          <span className="font-medium text-gray-900">{minPrice.toFixed(2)}</span>
         </div>
         <div>
           <span className="text-gray-600">开盘价: </span>
-          <span className="font-medium">{history[0]?.open.toFixed(2)}</span>
+          <span className="font-medium text-gray-900">{history[0]?.open.toFixed(2)}</span>
         </div>
         <div>
           <span className="text-gray-600">收盘价: </span>
-          <span className="font-medium">{history[history.length - 1]?.close.toFixed(2)}</span>
+          <span className={`font-medium ${
+            history[history.length - 1]?.close > history[0]?.open
+              ? 'text-red-600'
+              : history[history.length - 1]?.close < history[0]?.open
+              ? 'text-green-600'
+              : 'text-gray-900'
+          }`}>
+            {history[history.length - 1]?.close.toFixed(2)}
+          </span>
         </div>
       </div>
     </div>

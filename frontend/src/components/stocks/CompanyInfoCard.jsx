@@ -4,8 +4,8 @@ const CompanyInfoCard = ({ fundamentals, currentPrice, changePercent }) => {
   if (!fundamentals || !fundamentals.company_name) return null
 
   const getChangeColor = (change) => {
-    if (change > 0) return 'text-green-600'
-    if (change < 0) return 'text-red-600'
+    if (change > 0) return 'text-red-600'
+    if (change < 0) return 'text-green-600'
     return 'text-gray-600'
   }
 

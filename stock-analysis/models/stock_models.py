@@ -45,6 +45,9 @@ class TechnicalIndicators(BaseModel):
     volume: Dict[str, Any]
     turnover_rate: Dict[str, Any]  # 换手率分析
     elliott_wave: Dict[str, Any]   # 艾略特波浪理论分析
+    edwards_trend: Dict[str, Any]  # 爱德华兹趋势分析
+    murphy_intermarket: Dict[str, Any]  # 墨菲市场间分析
+    japanese_candlestick: Dict[str, Any]  # 日本蜡烛图分析
 
 
 class StockAnalysisResponse(BaseModel):
