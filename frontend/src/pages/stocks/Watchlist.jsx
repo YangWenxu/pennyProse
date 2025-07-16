@@ -8,21 +8,48 @@ const Watchlist = () => {
   const [loading, setLoading] = useState(true)
   const [addingStock, setAddingStock] = useState(false)
   const [newStock, setNewStock] = useState({ symbol: '', name: '' })
+  const [fastMode, setFastMode] = useState(false)
+  const [pricesLoading, setPricesLoading] = useState(false)
 
   useEffect(() => {
-    fetchWatchlist()
+    fetchWatchlist(true) // 默认使用快速模式
   }, [])
 
-  const fetchWatchlist = async () => {
+  const fetchWatchlist = async (fast = false) => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:8001/watchlist')
+      const endpoint = fast ? 'http://localhost:8001/watchlist/fast' : 'http://localhost:8001/watchlist'
+      const response = await fetch(endpoint)
       const data = await response.json()
       setWatchlist(data.watchlist)
+      setFastMode(fast)
     } catch (err) {
       console.error('Error fetching watchlist:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPrices = async () => {
+    try {
+      setPricesLoading(true)
+      const response = await fetch('http://localhost:8001/watchlist/prices')
+      const data = await response.json()
+
+      // 更新watchlist中的价格信息
+      setWatchlist(prevWatchlist =>
+        prevWatchlist.map(item => ({
+          ...item,
+          price: data.prices[item.symbol]?.price || 0,
+          change: data.prices[item.symbol]?.change || 0,
+          name: data.prices[item.symbol]?.name || item.name
+        }))
+      )
+      setFastMode(false)
+    } catch (err) {
+      console.error('Error fetching prices:', err)
+    } finally {
+      setPricesLoading(false)
     }
   }
 
@@ -106,13 +133,48 @@ const Watchlist = () => {
           <h1 className="text-3xl font-bold text-gray-900">自选股</h1>
           <p className="text-gray-600 mt-2">管理您关注的股票</p>
         </div>
-        <button
-          onClick={() => setAddingStock(true)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          添加股票
-        </button>
+        <div className="flex items-center gap-3">
+          {/* 模式切换按钮 */}
+          <div className="flex items-center gap-2">
+            {fastMode && (
+              <button
+                onClick={fetchPrices}
+                disabled={pricesLoading}
+                className="btn-secondary flex items-center gap-2 text-sm"
+              >
+                {pricesLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <TrendingUp className="w-4 h-4" />
+                )}
+                {pricesLoading ? '加载中...' : '获取价格'}
+              </button>
+            )}
+            <button
+              onClick={() => fetchWatchlist(!fastMode)}
+              disabled={loading}
+              className={`btn-secondary flex items-center gap-2 text-sm ${
+                fastMode ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+              }`}
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : fastMode ? (
+                <Bell className="w-4 h-4" />
+              ) : (
+                <TrendingUp className="w-4 h-4" />
+              )}
+              {fastMode ? '快速模式' : '完整模式'}
+            </button>
+          </div>
+          <button
+            onClick={() => setAddingStock(true)}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            添加股票
+          </button>
+        </div>
       </div>
 
       {/* Add Stock Modal */}
@@ -208,9 +270,30 @@ const Watchlist = () => {
               </div>
               
               <div className="space-y-2 text-sm">
+                {!fastMode && (stock.price !== undefined) ? (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">当前价格:</span>
+                      <span className="font-bold text-lg">¥{stock.price?.toFixed(2) || '0.00'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">涨跌幅:</span>
+                      <span className={`font-medium ${
+                        (stock.change || 0) >= 0 ? 'text-red-600' : 'text-green-600'
+                      }`}>
+                        {(stock.change || 0) >= 0 ? '+' : ''}{stock.change?.toFixed(2) || '0.00'}%
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">模式:</span>
+                    <span className="text-blue-600 font-medium">快速浏览</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span className="text-gray-600">添加日期:</span>
-                  <span className="font-medium">{stock.added_date}</span>
+                  <span className="text-gray-600">添加时间:</span>
+                  <span className="font-medium">{new Date(stock.added_at).toLocaleDateString()}</span>
                 </div>
               </div>
               
