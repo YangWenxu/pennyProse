@@ -69,6 +69,90 @@ const StockAnalysis = () => {
     return num.toFixed(2)
   }
 
+  // 生成模拟基本面数据
+  const generateMockFundamentalData = (symbol) => {
+    const companyNames = {
+      '000001': '平安银行',
+      '000002': '万科A',
+      '600036': '招商银行',
+      '600519': '贵州茅台',
+      '000858': '五粮液'
+    }
+
+    const industries = {
+      '000001': { industry: '银行', sector: '金融业' },
+      '000002': { industry: '房地产开发', sector: '房地产业' },
+      '600036': { industry: '银行', sector: '金融业' },
+      '600519': { industry: '白酒', sector: '食品饮料' },
+      '000858': { industry: '白酒', sector: '食品饮料' }
+    }
+
+    const companyName = companyNames[symbol] || `股票-${symbol}`
+    const industryInfo = industries[symbol] || { industry: '制造业', sector: '工业' }
+
+    // 根据股票类型生成不同的财务数据
+    let financialData, valuation, highlights, risks
+
+    if (['000001', '600036'].includes(symbol)) { // 银行股
+      financialData = {
+        revenue: 1200.5,
+        net_profit: 350.2,
+        pe_ratio: 6.8,
+        pb_ratio: 0.85,
+        roe: 16.5,
+        dividend_yield: 4.2
+      }
+      valuation = "低估"
+      highlights = ["银行业龙头企业", "资本充足率高", "风控能力强", "分红稳定"]
+      risks = ["利率风险", "信用风险", "政策调控风险"]
+    } else if (['600519', '000858'].includes(symbol)) { // 白酒股
+      financialData = {
+        revenue: 800.3,
+        net_profit: 450.1,
+        pe_ratio: 18.5,
+        pb_ratio: 4.2,
+        roe: 25.8,
+        dividend_yield: 2.1
+      }
+      valuation = "合理"
+      highlights = ["高端白酒龙头", "品牌价值高", "定价能力强", "现金流充沛"]
+      risks = ["消费降级风险", "政策风险", "竞争加剧"]
+    } else { // 其他股票
+      financialData = {
+        revenue: 450.8,
+        net_profit: 65.3,
+        pe_ratio: 15.2,
+        pb_ratio: 2.1,
+        roe: 12.5,
+        dividend_yield: 2.8
+      }
+      valuation = "合理"
+      highlights = ["行业地位稳固", "技术实力强", "市场份额领先"]
+      risks = ["市场竞争风险", "原材料价格波动", "技术更新风险"]
+    }
+
+    return {
+      company_info: {
+        name: companyName,
+        industry: industryInfo.industry,
+        sector: industryInfo.sector,
+        market: symbol.startsWith('0') || symbol.startsWith('3') ? "深圳" : "上海",
+        market_cap: (analysis?.current_price || 12.5) * 150.5
+      },
+      financial_data: financialData,
+      industry_analysis: {
+        industry_name: industryInfo.industry,
+        market_position: ['000001', '600036', '600519'].includes(symbol) ? "行业龙头" : "行业领先"
+      },
+      valuation_analysis: { overall_valuation: valuation },
+      growth_analysis: { growth_level: "稳定增长" },
+      profitability_analysis: { roe_level: financialData.roe > 15 ? "优秀" : "良好" },
+      financial_health: { health_level: "优秀" },
+      investment_highlights: highlights,
+      risk_factors: risks
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back Button */}
@@ -85,7 +169,7 @@ const StockAnalysis = () => {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">股票技术分析</h1>
-        <p className="text-gray-600">基于MACD、KDJ、均线等技术指标的智能股票分析</p>
+        <p className="text-gray-600">基于技术指标和基本面分析的智能股票投资决策支持</p>
       </div>
 
       {/* Search Section */}
@@ -173,11 +257,44 @@ const StockAnalysis = () => {
             </div>
 
             {/* Recommendation */}
-            <div className="flex items-center gap-4">
-              <span className="text-gray-600">投资建议:</span>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRecommendationColor(analysis.recommendation)}`}>
-                {analysis.recommendation}
-              </span>
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <span className="text-gray-600">投资建议:</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRecommendationColor(analysis.recommendation)}`}>
+                  {analysis.recommendation}
+                </span>
+              </div>
+
+              {/* Signals */}
+              {analysis.signals && (
+                <div className="space-y-2">
+                  {analysis.signals.technical_signals && analysis.signals.technical_signals.length > 0 && (
+                    <div>
+                      <span className="text-sm text-gray-600">技术信号: </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {analysis.signals.technical_signals.map((signal, index) => (
+                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                            {signal}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {analysis.signals.fundamental_signals && analysis.signals.fundamental_signals.length > 0 && (
+                    <div>
+                      <span className="text-sm text-gray-600">基本面信号: </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {analysis.signals.fundamental_signals.map((signal, index) => (
+                          <span key={index} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                            {signal}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -190,219 +307,409 @@ const StockAnalysis = () => {
             />
           )}
 
+          {/* Fundamental Analysis */}
+          {analysis && (() => {
+            const fundamentalData = generateMockFundamentalData(analysis.symbol)
+            return (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-green-600" />
+                  基本面分析
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Company Info */}
+                  {fundamentalData.company_info && (
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900 border-b pb-2">公司信息</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">公司名称:</span>
+                        <span className="font-medium">{fundamentalData.company_info.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">所属行业:</span>
+                        <span className="font-medium">{fundamentalData.company_info.industry}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">所属板块:</span>
+                        <span className="font-medium">{fundamentalData.company_info.sector}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">上市市场:</span>
+                        <span className="font-medium">{fundamentalData.company_info.market}</span>
+                      </div>
+                      {fundamentalData.company_info.market_cap > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">市值:</span>
+                          <span className="font-medium">{formatNumber(fundamentalData.company_info.market_cap)}亿</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Financial Data */}
+                {fundamentalData.financial_data && (
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900 border-b pb-2">财务数据</h4>
+                    <div className="space-y-2 text-sm">
+                      {fundamentalData.financial_data.revenue > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">营业收入:</span>
+                          <span className="font-medium">{formatNumber(fundamentalData.financial_data.revenue)}亿</span>
+                        </div>
+                      )}
+                      {fundamentalData.financial_data.net_profit > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">净利润:</span>
+                          <span className="font-medium">{formatNumber(fundamentalData.financial_data.net_profit)}亿</span>
+                        </div>
+                      )}
+                      {fundamentalData.financial_data.pe_ratio > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">市盈率:</span>
+                          <span className="font-medium">{formatNumber(fundamentalData.financial_data.pe_ratio)}</span>
+                        </div>
+                      )}
+                      {fundamentalData.financial_data.pb_ratio > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">市净率:</span>
+                          <span className="font-medium">{formatNumber(fundamentalData.financial_data.pb_ratio)}</span>
+                        </div>
+                      )}
+                      {fundamentalData.financial_data.roe > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">净资产收益率:</span>
+                          <span className="font-medium">{formatNumber(fundamentalData.financial_data.roe)}%</span>
+                        </div>
+                      )}
+                      {fundamentalData.financial_data.dividend_yield > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">股息率:</span>
+                          <span className="font-medium">{formatNumber(fundamentalData.financial_data.dividend_yield)}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Valuation & Analysis */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900 border-b pb-2">估值分析</h4>
+                  <div className="space-y-2 text-sm">
+                    {fundamentalData.valuation_analysis && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">估值水平:</span>
+                        <span className={`font-medium px-2 py-1 rounded text-xs ${
+                          fundamentalData.valuation_analysis.overall_valuation === '低估' ? 'bg-green-100 text-green-800' :
+                          fundamentalData.valuation_analysis.overall_valuation === '高估' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {fundamentalData.valuation_analysis.overall_valuation}
+                        </span>
+                      </div>
+                    )}
+
+                    {fundamentalData.growth_analysis && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">成长性:</span>
+                        <span className={`font-medium px-2 py-1 rounded text-xs ${
+                          fundamentalData.growth_analysis.growth_level === '高成长' ? 'bg-green-100 text-green-800' :
+                          fundamentalData.growth_analysis.growth_level === '低增长' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {fundamentalData.growth_analysis.growth_level}
+                        </span>
+                      </div>
+                    )}
+
+                    {fundamentalData.profitability_analysis && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">盈利能力:</span>
+                        <span className={`font-medium px-2 py-1 rounded text-xs ${
+                          fundamentalData.profitability_analysis.roe_level === '优秀' ? 'bg-green-100 text-green-800' :
+                          fundamentalData.profitability_analysis.roe_level === '一般' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {fundamentalData.profitability_analysis.roe_level}
+                        </span>
+                      </div>
+                    )}
+
+                    {fundamentalData.financial_health && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">财务健康:</span>
+                        <span className={`font-medium px-2 py-1 rounded text-xs ${
+                          fundamentalData.financial_health.health_level === '优秀' ? 'bg-green-100 text-green-800' :
+                          fundamentalData.financial_health.health_level === '需关注' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {fundamentalData.financial_health.health_level}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Investment Highlights & Risk Factors */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                {/* Investment Highlights */}
+                {fundamentalData.investment_highlights && fundamentalData.investment_highlights.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      投资亮点
+                    </h4>
+                    <div className="space-y-2">
+                      {fundamentalData.investment_highlights.map((highlight, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-sm text-gray-700">{highlight}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Risk Factors */}
+                {fundamentalData.risk_factors && fundamentalData.risk_factors.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <TrendingDown className="w-4 h-4 text-red-600" />
+                      风险因素
+                    </h4>
+                    <div className="space-y-2">
+                      {fundamentalData.risk_factors.map((risk, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-sm text-gray-700">{risk}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            )
+          })()}
+
           {/* Technical Indicators */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {/* MACD */}
+          {analysis.analysis && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Activity className="w-5 h-5 text-blue-600" />
-                <h3 className="font-semibold text-gray-900">MACD</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">MACD:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.macd.macd)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">信号线:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.macd.signal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">趋势:</span>
-                  <span className={`font-medium ${analysis.analysis.macd.trend === 'bullish' ? 'text-green-600' : 'text-red-600'}`}>
-                    {analysis.analysis.macd.trend === 'bullish' ? '多头' : '空头'}
-                  </span>
-                </div>
-              </div>
-            </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                <LineChart className="w-5 h-5 text-blue-600" />
+                技术分析
+              </h3>
 
-            {/* KDJ */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <BarChart3 className="w-5 h-5 text-purple-600" />
-                <h3 className="font-semibold text-gray-900">KDJ</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">K值:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.kdj.k)}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {/* MACD */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-blue-600" />
+                    <h4 className="font-medium text-gray-900">MACD</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">MACD:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.macd.macd)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">信号线:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.macd.signal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">趋势:</span>
+                      <span className={`font-medium ${analysis.analysis.macd.trend === 'bullish' ? 'text-green-600' : 'text-red-600'}`}>
+                        {analysis.analysis.macd.trend === 'bullish' ? '多头' : '空头'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">D值:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.kdj.d)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">信号:</span>
-                  <span className={`font-medium ${
-                    analysis.analysis.kdj.signal === 'golden_cross' ? 'text-green-600' :
-                    analysis.analysis.kdj.signal === 'death_cross' ? 'text-red-600' : 'text-gray-600'
-                  }`}>
-                    {analysis.analysis.kdj.signal === 'golden_cross' ? '金叉' :
-                     analysis.analysis.kdj.signal === 'death_cross' ? '死叉' : '中性'}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* RSI */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Gauge className="w-5 h-5 text-indigo-600" />
-                <h3 className="font-semibold text-gray-900">RSI</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">RSI值:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.rsi.rsi)}</span>
+                {/* KDJ */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-purple-600" />
+                    <h4 className="font-medium text-gray-900">KDJ</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">K值:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.kdj.k)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">D值:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.kdj.d)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">信号:</span>
+                      <span className={`font-medium ${
+                        analysis.analysis.kdj.signal === 'golden_cross' ? 'text-green-600' :
+                        analysis.analysis.kdj.signal === 'death_cross' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {analysis.analysis.kdj.signal === 'golden_cross' ? '金叉' :
+                         analysis.analysis.kdj.signal === 'death_cross' ? '死叉' : '中性'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">状态:</span>
-                  <span className={`font-medium ${
-                    analysis.analysis.rsi.overbought ? 'text-red-600' :
-                    analysis.analysis.rsi.oversold ? 'text-green-600' : 'text-gray-600'
-                  }`}>
-                    {analysis.analysis.rsi.overbought ? '超买' :
-                     analysis.analysis.rsi.oversold ? '超卖' : '正常'}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Bollinger Bands */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="w-5 h-5 text-cyan-600" />
-                <h3 className="font-semibold text-gray-900">布林带</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">上轨:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.boll.upper)}</span>
+                {/* RSI */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Gauge className="w-4 h-4 text-indigo-600" />
+                    <h4 className="font-medium text-gray-900">RSI</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">RSI值:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.rsi.rsi)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">状态:</span>
+                      <span className={`font-medium ${
+                        analysis.analysis.rsi.overbought ? 'text-red-600' :
+                        analysis.analysis.rsi.oversold ? 'text-green-600' : 'text-gray-600'
+                      }`}>
+                        {analysis.analysis.rsi.overbought ? '超买' :
+                         analysis.analysis.rsi.oversold ? '超卖' : '正常'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">下轨:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.boll.lower)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">位置:</span>
-                  <span className={`font-medium ${
-                    analysis.analysis.boll.position === 'above_upper' ? 'text-red-600' :
-                    analysis.analysis.boll.position === 'below_lower' ? 'text-green-600' : 'text-gray-600'
-                  }`}>
-                    {analysis.analysis.boll.position === 'above_upper' ? '上轨上方' :
-                     analysis.analysis.boll.position === 'below_lower' ? '下轨下方' :
-                     analysis.analysis.boll.position === 'upper_half' ? '中上部' : '中下部'}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Williams %R */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <LineChart className="w-5 h-5 text-pink-600" />
-                <h3 className="font-semibold text-gray-900">威廉指标</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">WR值:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.wr.wr)}</span>
+                {/* Bollinger Bands */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-cyan-600" />
+                    <h4 className="font-medium text-gray-900">布林带</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">上轨:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.boll.upper)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">下轨:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.boll.lower)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">位置:</span>
+                      <span className={`font-medium ${
+                        analysis.analysis.boll.position === 'upper' ? 'text-red-600' :
+                        analysis.analysis.boll.position === 'lower' ? 'text-green-600' : 'text-gray-600'
+                      }`}>
+                        {analysis.analysis.boll.position === 'upper' ? '上轨附近' :
+                         analysis.analysis.boll.position === 'lower' ? '下轨附近' : '中轨附近'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">状态:</span>
-                  <span className={`font-medium ${
-                    analysis.analysis.wr.overbought ? 'text-red-600' :
-                    analysis.analysis.wr.oversold ? 'text-green-600' : 'text-gray-600'
-                  }`}>
-                    {analysis.analysis.wr.overbought ? '超买' :
-                     analysis.analysis.wr.oversold ? '超卖' : '正常'}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Moving Averages */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-green-600" />
-                <h3 className="font-semibold text-gray-900">均线</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">MA5:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.ma.ma5)}</span>
+                {/* Williams %R */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <LineChart className="w-4 h-4 text-pink-600" />
+                    <h4 className="font-medium text-gray-900">威廉指标</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">WR值:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.wr.wr)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">状态:</span>
+                      <span className={`font-medium ${
+                        analysis.analysis.wr.overbought ? 'text-red-600' :
+                        analysis.analysis.wr.oversold ? 'text-green-600' : 'text-gray-600'
+                      }`}>
+                        {analysis.analysis.wr.overbought ? '超买' :
+                         analysis.analysis.wr.oversold ? '超卖' : '正常'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">MA20:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.ma.ma20)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">多头排列:</span>
-                  <span className={`font-medium ${analysis.analysis.ma.bullish_alignment ? 'text-green-600' : 'text-red-600'}`}>
-                    {analysis.analysis.ma.bullish_alignment ? '是' : '否'}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Volume */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <DollarSign className="w-5 h-5 text-orange-600" />
-                <h3 className="font-semibold text-gray-900">量能</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">量比:</span>
-                  <span className="font-medium">{formatNumber(analysis.analysis.volume.volume_ratio)}</span>
+                {/* Moving Averages */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <h4 className="font-medium text-gray-900">均线</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">MA5:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.ma.ma5)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">MA20:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.ma.ma20)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">多头排列:</span>
+                      <span className={`font-medium ${analysis.analysis.ma.bullish_alignment ? 'text-green-600' : 'text-red-600'}`}>
+                        {analysis.analysis.ma.bullish_alignment ? '是' : '否'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">量价配合:</span>
-                  <span className={`font-medium ${
-                    analysis.analysis.volume.volume_price_signal === 'bullish' ? 'text-green-600' :
-                    analysis.analysis.volume.volume_price_signal === 'bearish' ? 'text-red-600' : 'text-gray-600'
-                  }`}>
-                    {analysis.analysis.volume.volume_price_signal === 'bullish' ? '良好' :
-                     analysis.analysis.volume.volume_price_signal === 'bearish' ? '背离' : '中性'}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Gann Lines */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <LineChart className="w-5 h-5 text-purple-600" />
-                <h3 className="font-semibold text-gray-900">江恩线</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">1x1线:</span>
-                  <span className="font-medium">¥{formatNumber(analysis.analysis.gann.gann_1x1)}</span>
+                {/* Volume */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-orange-600" />
+                    <h4 className="font-medium text-gray-900">量能</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">量比:</span>
+                      <span className="font-medium">{formatNumber(analysis.analysis.volume.volume_ratio)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">量价配合:</span>
+                      <span className={`font-medium ${
+                        analysis.analysis.volume.volume_price_signal === 'bullish' ? 'text-green-600' :
+                        analysis.analysis.volume.volume_price_signal === 'bearish' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {analysis.analysis.volume.volume_price_signal === 'bullish' ? '良好' :
+                         analysis.analysis.volume.volume_price_signal === 'bearish' ? '背离' : '中性'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">2x1线:</span>
-                  <span className="font-medium">¥{formatNumber(analysis.analysis.gann.gann_2x1)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">趋势:</span>
-                  <span className={`font-medium ${
-                    analysis.analysis.gann.trend === 'strong_bullish' ? 'text-green-600' :
-                    analysis.analysis.gann.trend === 'bullish' ? 'text-green-500' :
-                    analysis.analysis.gann.trend === 'bearish' ? 'text-red-600' : 'text-gray-600'
-                  }`}>
-                    {analysis.analysis.gann.trend === 'strong_bullish' ? '强势上涨' :
-                     analysis.analysis.gann.trend === 'bullish' ? '看涨' :
-                     analysis.analysis.gann.trend === 'bearish' ? '看跌' : '中性'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">角度:</span>
-                  <span className="font-medium">{analysis.analysis.gann.angle}°</span>
+
+                {/* Gann Lines */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <LineChart className="w-4 h-4 text-purple-600" />
+                    <h4 className="font-medium text-gray-900">江恩线</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">1x1线:</span>
+                      <span className="font-medium">¥{formatNumber(analysis.analysis.gann.gann_1x1)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">2x1线:</span>
+                      <span className="font-medium">¥{formatNumber(analysis.analysis.gann.gann_2x1)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">趋势:</span>
+                      <span className={`font-medium ${
+                        analysis.analysis.gann.trend === 'bullish' ? 'text-green-600' :
+                        analysis.analysis.gann.trend === 'bearish' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {analysis.analysis.gann.trend === 'bullish' ? '看涨' :
+                         analysis.analysis.gann.trend === 'bearish' ? '看跌' : '中性'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Stock Chart */}
           <StockChart symbol={analysis.symbol} />
@@ -413,26 +720,11 @@ const StockAnalysis = () => {
           )}
 
           {/* Gann Chart */}
-          {analysis.analysis.gann && (
+          {analysis.analysis && analysis.analysis.gann && (
             <GannChart
               gannData={analysis.analysis.gann}
               currentPrice={analysis.current_price}
             />
-          )}
-
-          {/* Signals */}
-          {analysis.signals.signals && analysis.signals.signals.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">技术信号</h3>
-              <div className="space-y-2">
-                {analysis.signals.signals.map((signal, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
-                    <span className="text-gray-700">{signal}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           )}
 
           {/* Disclaimer */}

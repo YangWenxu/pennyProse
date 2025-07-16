@@ -20,11 +20,15 @@ logger = logging.getLogger(__name__)
 
 class StockAnalysisService:
     """股票分析服务类"""
-    
-    def analyze_stock(self, symbol: str, name: str, current_price: float, 
+
+    def __init__(self):
+        pass
+
+    def analyze_stock(self, symbol: str, name: str, current_price: float,
                      change_percent: float, hist_data: pd.DataFrame) -> StockAnalysisResponse:
         """执行完整的股票技术分析"""
         try:
+            logger.info(f"Starting analysis for {symbol} - {name}")
             # 计算各项技术指标
             macd = calculate_macd(hist_data)
             kdj = calculate_kdj(hist_data)
@@ -36,7 +40,7 @@ class StockAnalysisService:
             volume = calculate_volume_analysis(hist_data)
             
             # 创建技术指标对象
-            analysis = TechnicalIndicators(
+            technical_analysis = TechnicalIndicators(
                 macd=macd,
                 kdj=kdj,
                 rsi=rsi,
@@ -46,25 +50,50 @@ class StockAnalysisService:
                 ma=ma,
                 volume=volume
             )
-            
+
+            # 基本面分析（使用模拟数据）
+            fundamental_data = self._get_mock_fundamental_data(symbol, current_price)
+            fundamental_signals = self._generate_mock_fundamental_signals(symbol)
+            fundamental_recommendation = self._get_mock_fundamental_recommendation(symbol)
+
             # 生成技术信号
-            signals = self._generate_signals(analysis)
-            
-            # 生成投资建议
-            recommendation = self._generate_recommendation(analysis)
-            
+            technical_signals = self._generate_signals(technical_analysis)
+
+            # 生成技术建议
+            technical_recommendation = self._generate_recommendation(technical_analysis)
+
+            # 综合建议
+            overall_recommendation = self._generate_overall_recommendation(
+                technical_recommendation, fundamental_recommendation
+            )
+
+            # 合并分析数据
+            combined_analysis = {
+                "technical": technical_analysis.dict(),
+                "fundamental": fundamental_data
+            }
+
+            # 合并信号
+            combined_signals = {
+                "technical_signals": technical_signals.get("signals", []),
+                "fundamental_signals": fundamental_signals,
+                "all_signals": technical_signals.get("signals", []) + fundamental_signals
+            }
+
             return StockAnalysisResponse(
                 symbol=symbol,
                 name=name,
                 current_price=current_price,
                 change_percent=change_percent,
-                analysis=analysis,
-                signals=signals,
-                recommendation=recommendation
+                analysis=combined_analysis,
+                signals=combined_signals,
+                recommendation=f"技术面: {technical_recommendation} | 基本面: {fundamental_recommendation} | 综合: {overall_recommendation}"
             )
             
         except Exception as e:
             logger.error(f"Stock analysis error: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             # 返回默认分析结果
             return self._get_default_analysis(symbol, name, current_price, change_percent)
     
@@ -220,3 +249,168 @@ class StockAnalysisService:
             signals={"signals": ["数据获取中"]},
             recommendation="持有"
         )
+
+
+
+    def _generate_overall_recommendation(self, technical_rec: str, fundamental_rec: str) -> str:
+        """生成综合投资建议"""
+        try:
+            # 建议权重映射
+            rec_weights = {
+                "买入": 3,
+                "增持": 2,
+                "持有": 1,
+                "减持": 0,
+                "卖出": -1
+            }
+
+            tech_weight = rec_weights.get(technical_rec, 1)
+            fund_weight = rec_weights.get(fundamental_rec, 1)
+
+            # 综合评分（技术面权重40%，基本面权重60%）
+            combined_score = tech_weight * 0.4 + fund_weight * 0.6
+
+            if combined_score >= 2.5:
+                return "买入"
+            elif combined_score >= 1.5:
+                return "增持"
+            elif combined_score >= 0.5:
+                return "持有"
+            elif combined_score >= -0.5:
+                return "减持"
+            else:
+                return "卖出"
+
+        except Exception as e:
+            logger.error(f"Generate overall recommendation error: {e}")
+            return "持有"
+
+    def _get_mock_fundamental_data(self, symbol: str, current_price: float) -> dict:
+        """获取模拟基本面数据"""
+        import random
+
+        # 根据股票代码生成不同的基本面特征
+        company_names = {
+            '000001': '平安银行',
+            '000002': '万科A',
+            '600036': '招商银行',
+            '600519': '贵州茅台',
+            '000858': '五粮液'
+        }
+
+        industries = {
+            '000001': {'industry': '银行', 'sector': '金融业'},
+            '000002': {'industry': '房地产开发', 'sector': '房地产业'},
+            '600036': {'industry': '银行', 'sector': '金融业'},
+            '600519': {'industry': '白酒', 'sector': '食品饮料'},
+            '000858': {'industry': '白酒', 'sector': '食品饮料'}
+        }
+
+        company_name = company_names.get(symbol, f'股票-{symbol}')
+        industry_info = industries.get(symbol, {'industry': '制造业', 'sector': '工业'})
+
+        # 生成财务数据
+        if symbol in ['000001', '600036']:  # 银行股
+            financial_data = {
+                "revenue": round(random.uniform(800, 1500), 2),
+                "net_profit": round(random.uniform(200, 400), 2),
+                "pe_ratio": round(random.uniform(5, 8), 2),
+                "pb_ratio": round(random.uniform(0.6, 1.0), 2),
+                "roe": round(random.uniform(12, 18), 2),
+                "dividend_yield": round(random.uniform(3, 6), 2)
+            }
+            valuation = "低估" if financial_data["pe_ratio"] < 6.5 else "合理"
+            growth_level = "稳定增长"
+            roe_level = "优秀" if financial_data["roe"] > 15 else "良好"
+            health_level = "优秀"
+            highlights = ["银行业龙头企业", "资本充足率高", "风控能力强", "分红稳定"]
+            risks = ["利率风险", "信用风险", "政策调控风险"]
+        elif symbol in ['600519', '000858']:  # 白酒股
+            financial_data = {
+                "revenue": round(random.uniform(500, 1200), 2),
+                "net_profit": round(random.uniform(200, 600), 2),
+                "pe_ratio": round(random.uniform(15, 25), 2),
+                "pb_ratio": round(random.uniform(3, 6), 2),
+                "roe": round(random.uniform(20, 30), 2),
+                "dividend_yield": round(random.uniform(1, 3), 2)
+            }
+            valuation = "合理" if financial_data["pe_ratio"] < 20 else "偏高"
+            growth_level = "高成长"
+            roe_level = "优秀"
+            health_level = "优秀"
+            highlights = ["高端白酒龙头", "品牌价值高", "定价能力强", "现金流充沛"]
+            risks = ["消费降级风险", "政策风险", "竞争加剧"]
+        else:  # 其他股票
+            financial_data = {
+                "revenue": round(random.uniform(100, 800), 2),
+                "net_profit": round(random.uniform(10, 100), 2),
+                "pe_ratio": round(random.uniform(10, 30), 2),
+                "pb_ratio": round(random.uniform(1, 3), 2),
+                "roe": round(random.uniform(8, 15), 2),
+                "dividend_yield": round(random.uniform(1, 4), 2)
+            }
+            valuation = "合理"
+            growth_level = "稳定增长"
+            roe_level = "良好" if financial_data["roe"] > 10 else "一般"
+            health_level = "良好"
+            highlights = ["行业地位稳固", "技术实力强", "市场份额领先"]
+            risks = ["市场竞争风险", "原材料价格波动", "技术更新风险"]
+
+        return {
+            "company_info": {
+                "name": company_name,
+                "industry": industry_info['industry'],
+                "sector": industry_info['sector'],
+                "market": "深圳" if symbol.startswith('0') or symbol.startswith('3') else "上海",
+                "market_cap": round(current_price * random.uniform(50, 500), 2)
+            },
+            "financial_data": financial_data,
+            "industry_analysis": {
+                "industry_name": industry_info['industry'],
+                "market_position": "行业龙头" if symbol in ['000001', '600036', '600519'] else "行业领先"
+            },
+            "valuation_analysis": {"overall_valuation": valuation},
+            "growth_analysis": {"growth_level": growth_level},
+            "profitability_analysis": {"roe_level": roe_level},
+            "financial_health": {"health_level": health_level},
+            "investment_highlights": highlights,
+            "risk_factors": risks
+        }
+
+    def _generate_mock_fundamental_signals(self, symbol: str) -> list:
+        """生成模拟基本面信号"""
+        signals = []
+
+        if symbol in ['000001', '600036']:  # 银行股
+            signals = [
+                "估值处于历史低位，具备投资价值",
+                "净资产收益率稳定，盈利能力强",
+                "分红收益率较高，投资回报稳定",
+                "银行业龙头地位，竞争优势明显"
+            ]
+        elif symbol in ['600519', '000858']:  # 白酒股
+            signals = [
+                "高端白酒需求旺盛，业绩增长确定性强",
+                "品牌价值持续提升，定价能力强",
+                "现金流充沛，财务结构优秀",
+                "行业集中度提升，龙头受益"
+            ]
+        else:
+            signals = [
+                "基本面稳健，财务指标良好",
+                "行业地位稳固，竞争优势明显",
+                "业绩增长稳定，投资价值显现"
+            ]
+
+        return signals[:3]  # 返回前3个信号
+
+    def _get_mock_fundamental_recommendation(self, symbol: str) -> str:
+        """获取模拟基本面建议"""
+        import random
+
+        if symbol in ['000001', '600036']:  # 银行股
+            return random.choice(["增持", "买入"])
+        elif symbol in ['600519', '000858']:  # 白酒股
+            return random.choice(["持有", "增持"])
+        else:
+            return random.choice(["持有", "增持", "买入"])
