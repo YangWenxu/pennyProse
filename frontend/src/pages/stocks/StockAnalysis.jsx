@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, BarChart3, Loader2, ArrowLeft, DollarSign, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Search, BarChart3, Loader2, ArrowLeft, DollarSign, CheckCircle, AlertTriangle, TrendingUp, Target, Activity, Zap, Brain } from 'lucide-react'
 import TechnicalAnalysisGrid from '../../components/TechnicalAnalysisGrid'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import {
@@ -14,6 +14,12 @@ const StockAnalysis = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searchParams] = useSearchParams()
+
+  // 量化策略回测相关状态
+  const [backtestResults, setBacktestResults] = useState(null)
+  const [backtestLoading, setBacktestLoading] = useState(false)
+  const [selectedStrategy, setSelectedStrategy] = useState('fundamental')
+  const [showBacktest, setShowBacktest] = useState(false)
 
   // 处理URL参数，自动填入股票代码并分析
   useEffect(() => {
@@ -70,6 +76,113 @@ const StockAnalysis = () => {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       analyzeStock()
+    }
+  }
+
+  // 量化策略定义
+  const quantStrategies = [
+    {
+      id: 'fundamental',
+      name: '基本面量化策略',
+      icon: DollarSign,
+      description: '基于财务指标和估值模型的价值投资策略',
+      color: 'green',
+      factors: ['PE比率', 'PB比率', 'ROE', 'ROA', '营收增长率', '净利润增长率']
+    },
+    {
+      id: 'asset_allocation',
+      name: '资产配置策略',
+      icon: Target,
+      description: '基于风险平价和马科维茨理论的资产配置策略',
+      color: 'blue',
+      factors: ['风险平价', '最大夏普比率', '最小方差', '等权重配置']
+    },
+    {
+      id: 'alpha',
+      name: '阿尔法策略',
+      icon: TrendingUp,
+      description: '寻找超额收益的市场中性策略',
+      color: 'purple',
+      factors: ['多因子模型', '统计套利', '事件驱动', '配对交易']
+    },
+    {
+      id: 'beta',
+      name: '贝塔策略',
+      icon: Activity,
+      description: '基于市场系统性风险的趋势跟踪策略',
+      color: 'orange',
+      factors: ['市场贝塔', '行业轮动', '动量因子', '趋势跟踪']
+    },
+    {
+      id: 'alternative',
+      name: '另类策略',
+      icon: Brain,
+      description: '基于机器学习和另类数据的创新策略',
+      color: 'indigo',
+      factors: ['机器学习', '情绪分析', '另类数据', '高频交易']
+    }
+  ]
+
+  // 执行量化策略回测
+  const runBacktest = async (strategyId) => {
+    if (!analysis) {
+      setError('请先分析股票')
+      return
+    }
+
+    setBacktestLoading(true)
+    setSelectedStrategy(strategyId)
+
+    try {
+      // 模拟回测结果
+      const mockBacktestResult = generateMockBacktestResult(strategyId, analysis.symbol)
+
+      // 模拟API延迟
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      setBacktestResults(mockBacktestResult)
+      setShowBacktest(true)
+    } catch (err) {
+      setError('回测失败，请重试')
+    } finally {
+      setBacktestLoading(false)
+    }
+  }
+
+  // 生成模拟回测结果
+  const generateMockBacktestResult = (strategyId, symbol) => {
+    const strategy = quantStrategies.find(s => s.id === strategyId)
+    const baseReturn = Math.random() * 30 - 10 // -10% to 20%
+    const volatility = Math.random() * 20 + 10 // 10% to 30%
+    const sharpeRatio = baseReturn / volatility
+
+    return {
+      strategy: strategy,
+      symbol: symbol,
+      period: '1年',
+      performance: {
+        total_return: baseReturn.toFixed(2) + '%',
+        annual_return: baseReturn.toFixed(2) + '%',
+        volatility: volatility.toFixed(2) + '%',
+        sharpe_ratio: sharpeRatio.toFixed(2),
+        max_drawdown: (Math.random() * 15 + 5).toFixed(2) + '%',
+        win_rate: (Math.random() * 30 + 50).toFixed(1) + '%'
+      },
+      risk_metrics: {
+        var_95: (Math.random() * 5 + 2).toFixed(2) + '%',
+        beta: (Math.random() * 0.6 + 0.7).toFixed(2),
+        alpha: (Math.random() * 10 - 5).toFixed(2) + '%',
+        information_ratio: (Math.random() * 1 + 0.5).toFixed(2)
+      },
+      monthly_returns: Array.from({length: 12}, (_, i) => ({
+        month: `${i + 1}月`,
+        return: (Math.random() * 10 - 5).toFixed(2)
+      })),
+      factor_exposure: strategy.factors.map(factor => ({
+        factor: factor,
+        exposure: (Math.random() * 2 - 1).toFixed(2),
+        contribution: (Math.random() * 5 - 2.5).toFixed(2)
+      }))
     }
   }
 
@@ -147,9 +260,9 @@ const StockAnalysis = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <Link to="/admin" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+              <Link to="/stock-features" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
                 <ArrowLeft className="w-4 h-4" />
-                返回管理后台
+                返回股票功能
               </Link>
               <div className="h-6 w-px bg-gray-300"></div>
               <h1 className="text-xl font-semibold text-gray-900">股票技术分析</h1>
@@ -183,7 +296,7 @@ const StockAnalysis = () => {
             <button
               onClick={analyzeStock}
               disabled={loading}
-              className="w-full mt-4 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
             >
               {loading ? (
                 <>
@@ -624,10 +737,191 @@ const StockAnalysis = () => {
               </div>
             )}
 
+            {/* 量化策略回测 */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-yellow-600" />
+                量化策略回测
+              </h3>
+
+              {/* 策略选择 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                {quantStrategies.map((strategy) => {
+                  const Icon = strategy.icon
+                  return (
+                    <div
+                      key={strategy.id}
+                      className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                        selectedStrategy === strategy.id
+                          ? `border-${strategy.color}-500 bg-${strategy.color}-50`
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setSelectedStrategy(strategy.id)}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <Icon className={`w-8 h-8 mb-2 ${
+                          selectedStrategy === strategy.id
+                            ? `text-${strategy.color}-600`
+                            : 'text-gray-400'
+                        }`} />
+                        <h4 className={`font-medium text-sm mb-1 ${
+                          selectedStrategy === strategy.id
+                            ? `text-${strategy.color}-900`
+                            : 'text-gray-700'
+                        }`}>
+                          {strategy.name}
+                        </h4>
+                        <p className="text-xs text-gray-500 leading-tight">
+                          {strategy.description}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* 回测按钮 */}
+              <div className="flex justify-center mb-6">
+                <button
+                  onClick={() => runBacktest(selectedStrategy)}
+                  disabled={backtestLoading || !analysis}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
+                >
+                  {backtestLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      回测中...
+                    </>
+                  ) : (
+                    <>
+                      <BarChart3 className="w-5 h-5" />
+                      开始回测
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 回测结果 */}
+              {showBacktest && backtestResults && (
+                <div className="space-y-6">
+                  {/* 策略信息 */}
+                  <div className={`bg-${backtestResults.strategy.color}-50 rounded-lg p-4 border border-${backtestResults.strategy.color}-200`}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <backtestResults.strategy.icon className={`w-6 h-6 text-${backtestResults.strategy.color}-600`} />
+                      <h4 className={`text-lg font-semibold text-${backtestResults.strategy.color}-900`}>
+                        {backtestResults.strategy.name} - {backtestResults.symbol}
+                      </h4>
+                    </div>
+                    <p className={`text-sm text-${backtestResults.strategy.color}-700 mb-3`}>
+                      {backtestResults.strategy.description}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {backtestResults.strategy.factors.map((factor, index) => (
+                        <span
+                          key={index}
+                          className={`px-2 py-1 text-xs rounded-full bg-${backtestResults.strategy.color}-100 text-${backtestResults.strategy.color}-700`}
+                        >
+                          {factor}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 绩效指标 */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-gray-900">{backtestResults.performance.total_return}</div>
+                      <div className="text-sm text-gray-600">总收益率</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-gray-900">{backtestResults.performance.annual_return}</div>
+                      <div className="text-sm text-gray-600">年化收益</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-gray-900">{backtestResults.performance.volatility}</div>
+                      <div className="text-sm text-gray-600">波动率</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-gray-900">{backtestResults.performance.sharpe_ratio}</div>
+                      <div className="text-sm text-gray-600">夏普比率</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-gray-900">{backtestResults.performance.max_drawdown}</div>
+                      <div className="text-sm text-gray-600">最大回撤</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-gray-900">{backtestResults.performance.win_rate}</div>
+                      <div className="text-sm text-gray-600">胜率</div>
+                    </div>
+                  </div>
+
+                  {/* 风险指标 */}
+                  <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <h5 className="font-semibold text-red-900 mb-3">风险指标</h5>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-red-700">{backtestResults.risk_metrics.var_95}</div>
+                        <div className="text-sm text-red-600">VaR (95%)</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-red-700">{backtestResults.risk_metrics.beta}</div>
+                        <div className="text-sm text-red-600">Beta系数</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-red-700">{backtestResults.risk_metrics.alpha}</div>
+                        <div className="text-sm text-red-600">Alpha</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-red-700">{backtestResults.risk_metrics.information_ratio}</div>
+                        <div className="text-sm text-red-600">信息比率</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 因子暴露 */}
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h5 className="font-semibold text-blue-900 mb-3">因子暴露分析</h5>
+                    <div className="space-y-2">
+                      {backtestResults.factor_exposure.map((factor, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <span className="text-sm text-blue-700">{factor.factor}</span>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm font-medium text-blue-900">
+                              暴露: {factor.exposure}
+                            </span>
+                            <span className="text-sm font-medium text-blue-900">
+                              贡献: {factor.contribution}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 月度收益 */}
+                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                    <h5 className="font-semibold text-green-900 mb-3">月度收益分布</h5>
+                    <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-2">
+                      {backtestResults.monthly_returns.map((month, index) => (
+                        <div key={index} className="text-center">
+                          <div className={`text-sm font-medium ${
+                            parseFloat(month.return) >= 0 ? 'text-red-600' : 'text-green-600'
+                          }`}>
+                            {month.return}%
+                          </div>
+                          <div className="text-xs text-green-600">{month.month}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Disclaimer */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-yellow-800 text-sm">
-                <strong>免责声明：</strong>本分析仅供参考，不构成投资建议。股市有风险，投资需谨慎。
+                <strong>免责声明：</strong>本分析仅供参考，不构成投资建议。股市有风险，投资需谨慎。回测结果不代表未来表现。
               </p>
             </div>
           </div>
