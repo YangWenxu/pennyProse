@@ -33,6 +33,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 健康检查端点
+@app.get("/health")
+async def health_check():
+    """健康检查端点"""
+    return {"status": "healthy", "service": "stock-analysis-api"}
+
 # 注册路由
 app.include_router(stock_router, tags=["股票分析"])
 app.include_router(watchlist_router, tags=["自选股和预警"])

@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # 前端服务（生产环境）
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+
+  # Node.js后端服务（生产环境）
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=${REDIS_URL}
+      - CORS_ORIGIN=https://${DOMAIN}
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.${DOMAIN}`)"
+      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+
+  # Python股票分析服务（生产环境）
+  stock-analysis:
+    build:
+      context: ./stock-analysis
+      dockerfile: Dockerfile
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_PATH=/app/database/stock_analysis.db
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.stock-api.rule=Host(`stock-api.${DOMAIN}`)"
+      - "traefik.http.routers.stock-api.tls=true"
+      - "traefik.http.routers.stock-api.tls.certresolver=letsencrypt"
+
+  # PostgreSQL数据库（生产环境）
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Redis缓存（生产环境）
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    restart: always
+    volumes:
+      - redis-data:/data
+
+  # Traefik反向代理和SSL
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--global.checknewversion=false"
+      - "--global.sendanonymoususage=false"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+
+  # 监控服务
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`monitoring.${DOMAIN}`)"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+
+volumes:
+  postgres-data:
+  redis-data:
+  letsencrypt:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  default:
+    name: pennyprose-prod

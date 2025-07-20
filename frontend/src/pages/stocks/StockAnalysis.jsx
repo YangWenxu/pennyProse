@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, BarChart3, Loader2, ArrowLeft, DollarSign, CheckCircle, AlertTriangle } from 'lucide-react'
 import TechnicalAnalysisGrid from '../../components/TechnicalAnalysisGrid'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import {
   StockChart,
   GannChart,
@@ -13,9 +13,23 @@ const StockAnalysis = () => {
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [searchParams] = useSearchParams()
 
-  const analyzeStock = async () => {
-    if (!symbol.trim()) {
+  // 处理URL参数，自动填入股票代码并分析
+  useEffect(() => {
+    const symbolFromUrl = searchParams.get('symbol')
+    if (symbolFromUrl && symbolFromUrl.trim()) {
+      setSymbol(symbolFromUrl.toUpperCase())
+      // 延迟一点时间确保状态更新完成后再分析
+      setTimeout(() => {
+        analyzeStockWithSymbol(symbolFromUrl.toUpperCase())
+      }, 100)
+    }
+  }, [searchParams])
+
+  const analyzeStockWithSymbol = async (stockSymbol) => {
+    const targetSymbol = stockSymbol || symbol
+    if (!targetSymbol.trim()) {
       setError('请输入股票代码')
       return
     }
@@ -29,21 +43,28 @@ const StockAnalysis = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ symbol: symbol.trim() })
+        body: JSON.stringify({
+          symbol: targetSymbol,
+          period: '1y'
+        })
       })
 
       if (!response.ok) {
-        throw new Error('分析失败')
+        throw new Error('分析请求失败')
       }
 
       const data = await response.json()
       setAnalysis(data)
     } catch (err) {
-      console.error('Stock analysis error:', err)
-      setError('股票分析失败，请检查股票代码或稍后重试')
+      setError(err.message || '分析失败，请重试')
+      console.error('Analysis error:', err)
     } finally {
       setLoading(false)
     }
+  }
+
+  const analyzeStock = async () => {
+    await analyzeStockWithSymbol(symbol)
   }
 
   const handleKeyPress = (e) => {
@@ -154,7 +175,7 @@ const StockAnalysis = () => {
                 type="text"
                 value={symbol}
                 onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 placeholder="输入股票代码 (如: 000001, 600519)"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />

@@ -22,7 +22,7 @@ const Layout = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen relative z-10">
+    <div className="min-h-screen flex flex-col relative z-10">
       {/* Header */}
       <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

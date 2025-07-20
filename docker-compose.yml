@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - stock-analysis
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - pennyprose-network
+
+  # Node.js后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/pennyprose
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-key}
+      - CORS_ORIGIN=http://localhost
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    volumes:
+      - backend-uploads:/app/uploads
+      - backend-logs:/app/logs
+    networks:
+      - pennyprose-network
+
+  # Python股票分析服务
+  stock-analysis:
+    build:
+      context: ./stock-analysis
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_PATH=/app/database/stock_analysis.db
+    restart: unless-stopped
+    volumes:
+      - stock-db:/app/database
+      - stock-logs:/app/logs
+    networks:
+      - pennyprose-network
+
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=pennyprose
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - pennyprose-network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - pennyprose-network
+
+  # Nginx负载均衡器（可选）
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+    restart: unless-stopped
+    networks:
+      - pennyprose-network
+
+volumes:
+  postgres-data:
+  redis-data:
+  backend-uploads:
+  backend-logs:
+  stock-db:
+  stock-logs:
+
+networks:
+  pennyprose-network:
+    driver: bridge

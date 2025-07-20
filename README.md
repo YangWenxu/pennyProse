@@ -1,5 +1,11 @@
 # PennyProse - 创作与分析的完美融合
 
+[![Deploy Status](https://github.com/YOUR_USERNAME/PennyProse/workflows/Deploy%20PennyProse%20Full%20Stack%20Application/badge.svg)](https://github.com/YOUR_USERNAME/PennyProse/actions)
+[![Frontend](https://img.shields.io/badge/Frontend-React%2018-blue)](https://reactjs.org/)
+[![Backend](https://img.shields.io/badge/Backend-Node.js%2018-green)](https://nodejs.org/)
+[![Stock API](https://img.shields.io/badge/Stock%20API-Python%203.11-yellow)](https://python.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://docker.com/)
+
 一个集博客创作与专业股票分析于一体的现代化平台，采用前后端分离架构，基于 React + Vite 前端、Node.js + Koa 博客后端和 Python + FastAPI 股票分析服务构建。
 
 **🚀 专业级股票分析系统**：集成13大技术分析方法，包含爱德华兹趋势分析、墨菲市场间分析、日本蜡烛图分析等经典理论，为投资决策提供华尔街级别的专业支持。
@@ -489,6 +495,109 @@ docker-compose up -d
 
 **现代分析理论 (3个)**
 - 换手率、墨菲市场间、日本蜡烛图
+
+## 🚀 部署指南
+
+### 🐳 Docker部署（推荐）
+
+#### 快速部署
+```bash
+# 克隆项目
+git clone https://github.com/your-username/PennyProse.git
+cd PennyProse
+
+# 复制环境配置
+cp .env.example .env
+# 编辑 .env 文件，设置你的配置
+
+# 一键部署
+chmod +x deploy.sh
+./deploy.sh
+```
+
+#### 手动Docker部署
+```bash
+# 开发环境
+docker-compose up --build
+
+# 生产环境
+docker-compose -f docker-compose.prod.yml up --build -d
+```
+
+### ☁️ 云平台部署
+
+#### GitHub Actions自动部署
+1. Fork本项目到你的GitHub账户
+2. 在GitHub仓库设置中添加以下Secrets：
+   ```
+   DOCKER_USERNAME=你的Docker Hub用户名
+   DOCKER_PASSWORD=你的Docker Hub密码
+   RAILWAY_TOKEN=你的Railway令牌
+   HEROKU_API_KEY=你的Heroku API密钥
+   HEROKU_EMAIL=你的Heroku邮箱
+   JWT_SECRET=你的JWT密钥
+   ```
+3. 推送代码到main分支，自动触发部署
+
+#### Railway部署（推荐）
+1. 连接GitHub仓库到Railway
+2. 分别部署三个服务：
+   - Frontend: `frontend/`
+   - Backend: `backend/`
+   - Stock API: `stock-analysis/`
+
+#### Vercel部署（前端）
+```bash
+# 安装Vercel CLI
+npm i -g vercel
+
+# 部署前端
+cd frontend
+vercel --prod
+```
+
+### 🔧 环境配置
+
+#### 必需的环境变量
+```bash
+# 数据库
+DATABASE_URL=postgresql://user:pass@host:port/db
+POSTGRES_PASSWORD=your-secure-password
+
+# 安全
+JWT_SECRET=your-jwt-secret-key
+
+# 应用
+NODE_ENV=production
+CORS_ORIGIN=https://your-domain.com
+```
+
+### 📊 监控和维护
+
+#### 服务健康检查
+```bash
+# 检查所有服务状态
+docker-compose ps
+
+# 查看服务日志
+docker-compose logs -f [service_name]
+
+# 重启服务
+docker-compose restart [service_name]
+```
+
+#### 数据备份
+```bash
+# 备份PostgreSQL数据库
+docker-compose exec postgres pg_dump -U postgres pennyprose > backup.sql
+
+# 备份SQLite数据库
+docker-compose exec stock-analysis cp /app/database/stock_analysis.db /backup/
+```
+
+## 🤝 贡献指南
+
+欢迎提交 Issue 和 Pull Request 来改进这个项目！
 
 ## 许可证
 
