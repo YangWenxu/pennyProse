@@ -44,7 +44,7 @@ const PostDetail = () => {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center min-h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
           <span className="ml-2 text-gray-600">Loading post...</span>
@@ -55,7 +55,7 @@ const PostDetail = () => {
 
   if (error || !post) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center py-12">
           <p className="text-red-600 mb-4">{error || 'Post not found'}</p>
           <Link to="/blog" className="btn-primary">
@@ -67,7 +67,7 @@ const PostDetail = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back Button */}
       <div className="mb-6">
         <Link 
@@ -131,7 +131,7 @@ const PostDetail = () => {
       </header>
 
       {/* Post Content */}
-      <article className="prose prose-lg max-w-none mb-12">
+      <article className="article-content max-w-none mb-12">
         <ReactMarkdown>{post.content}</ReactMarkdown>
       </article>
 

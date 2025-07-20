@@ -31,4 +31,88 @@
       linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
     background-size: 20px 20px;
   }
+
+  /* 文章内容样式优化 */
+  .article-content {
+    line-height: 1.8;
+  }
+
+  .article-content h1,
+  .article-content h2,
+  .article-content h3,
+  .article-content h4,
+  .article-content h5,
+  .article-content h6 {
+    @apply mt-8 mb-4 font-bold text-gray-900;
+  }
+
+  .article-content h1 {
+    @apply text-3xl border-b border-gray-200 pb-2;
+  }
+
+  .article-content h2 {
+    @apply text-2xl;
+  }
+
+  .article-content h3 {
+    @apply text-xl;
+  }
+
+  .article-content p {
+    @apply mb-4 text-gray-700 leading-relaxed;
+  }
+
+  .article-content ul,
+  .article-content ol {
+    @apply mb-4 pl-6;
+  }
+
+  .article-content li {
+    @apply mb-2 text-gray-700;
+  }
+
+  .article-content blockquote {
+    @apply border-l-4 border-blue-500 pl-4 py-2 my-4 bg-blue-50 italic text-gray-700;
+  }
+
+  .article-content code {
+    @apply bg-gray-100 px-2 py-1 rounded text-sm font-mono text-gray-800;
+  }
+
+  .article-content pre {
+    @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4;
+  }
+
+  .article-content pre code {
+    @apply bg-transparent p-0 text-gray-100;
+  }
+
+  .article-content table {
+    @apply w-full border-collapse border border-gray-300 my-4;
+  }
+
+  .article-content th,
+  .article-content td {
+    @apply border border-gray-300 p-3 text-left;
+  }
+
+  .article-content th {
+    @apply bg-gray-50 font-semibold text-gray-900;
+  }
+
+  .article-content td {
+    @apply text-gray-700;
+  }
+
+  .article-content strong {
+    @apply font-semibold text-gray-900;
+  }
+
+  .article-content em {
+    @apply italic text-gray-700;
+  }
+
+  .article-content a {
+    @apply text-blue-600 hover:text-blue-800 underline;
+  }
 }
