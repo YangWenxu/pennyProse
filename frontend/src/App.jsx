@@ -20,7 +20,7 @@ import StockFeatures from './pages/stocks/StockFeatures'
 const queryClient = new QueryClient()
 
 function App() {
-  const basename = import.meta.env.PROD ? '/PennyProse' : '';
+  const basename = import.meta.env.PROD ? '/pennyProse' : '';
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -84,7 +84,7 @@ Error: Get Pages site failed. Please verify that the repository has Pages enable
    - 确认源设置正确
 
 3. **访问网站**
-   - 部署成功后访问：https://yangwenxu.github.io/PennyProse/
+   - 部署成功后访问：https://yangwenxu.github.io/pennyProse/
    - 检查页面是否正常加载
 
 ### 常见问题排查

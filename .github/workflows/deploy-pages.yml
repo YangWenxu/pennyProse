@@ -54,7 +54,7 @@ jobs:
         run: pnpm run build
         env:
           # GitHub Pages的基础路径
-          VITE_BASE_URL: '/PennyProse/'
+          VITE_BASE_URL: '/pennyProse/'
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "deployment": {
     "platform": "GitHub Pages",
-    "url": "https://yangwenxu.github.io/PennyProse/",
+    "url": "https://yangwenxu.github.io/pennyProse/",
     "type": "Static Frontend Only",
     "lastUpdated": "2024-01-01T00:00:00Z"
   },

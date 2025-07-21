@@ -24,7 +24,7 @@ PennyProse 前端现在配置为部署到 GitHub Pages。由于 GitHub Pages 只
 ### 3. 访问地址
 
 部署完成后，应用将在以下地址可用：
-- **主域名**: https://yangwenxu.github.io/PennyProse/
+- **主域名**: https://yangwenxu.github.io/pennyProse/
 
 ## 技术配置
 
@@ -32,7 +32,7 @@ PennyProse 前端现在配置为部署到 GitHub Pages。由于 GitHub Pages 只
 
 ```javascript
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/PennyProse/' : '/',
+  base: process.env.NODE_ENV === 'production' ? '/pennyProse/' : '/',
   // ... 其他配置
 })
 ```
@@ -41,7 +41,7 @@ export default defineConfig({
 
 ```javascript
 function App() {
-  const basename = import.meta.env.PROD ? '/PennyProse' : '';
+  const basename = import.meta.env.PROD ? '/pennyProse' : '';
   return (
     <Router basename={basename}>
       {/* 路由配置 */}
@@ -84,7 +84,7 @@ const API_BASE_URL = import.meta.env.PROD
 
 在 GitHub Actions 中自动设置：
 - `NODE_ENV=production`
-- `VITE_BASE_URL=/PennyProse/`
+- `VITE_BASE_URL=/pennyProse/`
 
 ### 后端环境变量
 
