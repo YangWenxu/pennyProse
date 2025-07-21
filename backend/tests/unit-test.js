@@ -2,6 +2,13 @@
  * 后端单元测试
  * 测试模块导入和基本功能，不需要启动服务器
  */
+import fs from 'fs';
+import path from 'path';
+import http from 'http';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 测试计数器
 let passed = 0;
@@ -32,10 +39,6 @@ async function runTests() {
 
   // 测试1: 基本Node.js模块
   test('Basic Node.js modules', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const http = require('http');
-    
     assert(typeof fs.readFileSync === 'function', 'fs module should be available');
     assert(typeof path.join === 'function', 'path module should be available');
     assert(typeof http.createServer === 'function', 'http module should be available');
@@ -43,12 +46,9 @@ async function runTests() {
 
   // 测试2: 检查package.json
   test('Package.json validation', () => {
-    const fs = require('fs');
-    const path = require('path');
-    
     const packagePath = path.join(process.cwd(), 'package.json');
     assert(fs.existsSync(packagePath), 'package.json should exist');
-    
+
     const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
     assert(packageJson.name === 'pennyprose-backend', 'Package name should be correct');
     assert(packageJson.main === 'src/main.js', 'Main entry should be correct');
@@ -57,27 +57,21 @@ async function runTests() {
 
   // 测试3: 检查源文件存在
   test('Source files existence', () => {
-    const fs = require('fs');
-    const path = require('path');
-    
     const mainFile = path.join(process.cwd(), 'src', 'main.js');
     assert(fs.existsSync(mainFile), 'main.js should exist');
-    
+
     const routesDir = path.join(process.cwd(), 'src', 'routes');
     assert(fs.existsSync(routesDir), 'routes directory should exist');
-    
+
     const servicesDir = path.join(process.cwd(), 'src', 'services');
     assert(fs.existsSync(servicesDir), 'services directory should exist');
   });
 
   // 测试4: 检查Prisma配置
   test('Prisma configuration', () => {
-    const fs = require('fs');
-    const path = require('path');
-    
     const schemaFile = path.join(process.cwd(), 'prisma', 'schema.prisma');
     assert(fs.existsSync(schemaFile), 'Prisma schema should exist');
-    
+
     const dbFile = path.join(process.cwd(), 'prisma', 'dev.db');
     assert(fs.existsSync(dbFile), 'Database file should exist');
   });
