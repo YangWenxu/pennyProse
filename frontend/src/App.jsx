@@ -20,9 +20,11 @@ import StockFeatures from './pages/stocks/StockFeatures'
 const queryClient = new QueryClient()
 
 function App() {
+  const basename = import.meta.env.PROD ? '/PennyProse' : '';
+
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <Router basename={basename}>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>

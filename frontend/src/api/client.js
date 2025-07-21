@@ -1,6 +1,9 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:3001'
+// 根据环境配置API基础URL
+const API_BASE_URL = import.meta.env.PROD
+  ? 'https://api.yangwenxu.github.io'  // 生产环境API地址
+  : 'http://localhost:3001'            // 开发环境API地址
 
 // Create axios instance
 const apiClient = axios.create({
