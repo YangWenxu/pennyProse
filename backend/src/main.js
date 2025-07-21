@@ -137,12 +137,17 @@ app.use((error, req, res, next) => {
 });
 
 // ============================================================================
+// Export app for testing
+export default app;
+
 // SERVER STARTUP
 // ============================================================================
 
 const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
+// Only start server if this file is run directly (not imported for testing)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  app.listen(PORT, () => {
   console.log(`🚀 PennyProse Backend Server (Modular) running on http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  Database: SQLite with Prisma`);
@@ -195,4 +200,5 @@ app.listen(PORT, () => {
   console.log(`   PATCH  /api/admin/users/:id/role         - Update user role`);
   console.log(`   DELETE /api/admin/users/:id              - Delete user`);
   console.log(`\n✨ Ready to serve requests!`);
-});
+  });
+}

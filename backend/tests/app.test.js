@@ -1,20 +1,20 @@
 /**
  * 后端API测试
  */
-const request = require('supertest');
-const app = require('../app');
+import request from 'supertest';
+import app from '../src/main.js';
 
 describe('Backend API Tests', () => {
-  
+
   // 健康检查测试
   describe('GET /health', () => {
     it('should return health status', async () => {
       const response = await request(app)
         .get('/health')
         .expect(200);
-      
-      expect(response.body).toHaveProperty('status', 'healthy');
-      expect(response.body).toHaveProperty('service');
+
+      expect(response.body).toHaveProperty('status', 'ok');
+      expect(response.body).toHaveProperty('timestamp');
     });
   });
 
