@@ -31,30 +31,24 @@ def test_database_init():
 def test_stock_models():
     """测试股票模型"""
     try:
-        from models.stock_models import StockData, AnalysisRequest
+        from models.stock_models import StockData, StockAnalysisRequest
         # 测试模型创建
         stock_data = StockData(
-            symbol="000001",
             name="测试股票",
-            price=10.0,
-            change=0.5,
-            change_percent=5.0,
-            volume=1000000,
-            market_cap=1000000000.0,
-            pe_ratio=15.0,
-            pb_ratio=1.5
+            current_price=10.0,
+            change_percent=5.0
         )
-        assert stock_data.symbol == "000001"
-        assert stock_data.price == 10.0
-        
-        analysis_request = AnalysisRequest(
+        assert stock_data.name == "测试股票"
+        assert stock_data.current_price == 10.0
+        assert stock_data.change_percent == 5.0
+
+        analysis_request = StockAnalysisRequest(
             symbol="000001",
-            period="1d",
-            indicators=["ma", "rsi"]
+            period="1y"
         )
         assert analysis_request.symbol == "000001"
-        assert "ma" in analysis_request.indicators
-        
+        assert analysis_request.period == "1y"
+
     except ImportError as e:
         pytest.fail(f"Stock models import failed: {e}")
 
@@ -77,12 +71,12 @@ def test_services_import():
     """测试服务模块导入"""
     try:
         from services.analysis_service import StockAnalysisService
-        from services.data_service import DataService
+        from services.data_service import StockDataService
         from services.backtest_service import BacktestService
-        
+
         # 测试服务类是否可实例化
         assert StockAnalysisService is not None
-        assert DataService is not None
+        assert StockDataService is not None
         assert BacktestService is not None
     except ImportError as e:
         pytest.fail(f"Services import failed: {e}")
