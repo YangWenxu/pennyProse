@@ -41,6 +41,8 @@ jobs:
         with:
           # 自动检测静态站点生成器并配置
           static_site_generator: vite
+          # 自动启用Pages（如果尚未启用）
+          enablement: true
 
       - name: Install dependencies
         working-directory: ./frontend
