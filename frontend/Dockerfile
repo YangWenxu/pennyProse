@@ -1,19 +1,22 @@
 # 多阶段构建：构建阶段
 FROM node:18-alpine AS builder
 
+# 安装pnpm
+RUN npm install -g pnpm
+
 WORKDIR /app
 
-# 复制package文件
-COPY package*.json ./
+# 复制package文件和pnpm-lock.yaml
+COPY package.json pnpm-lock.yaml ./
 
 # 安装依赖
-RUN npm ci --only=production
+RUN pnpm install --frozen-lockfile --prod=false
 
 # 复制源代码
 COPY . .
 
 # 构建应用
-RUN npm run build
+RUN pnpm run build
 
 # 生产阶段：使用nginx提供静态文件
 FROM nginx:alpine
