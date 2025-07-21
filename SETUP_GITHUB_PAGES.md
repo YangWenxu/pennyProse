@@ -13,19 +13,22 @@ Error: Get Pages site failed. Please verify that the repository has Pages enable
 
 ### 方案1：手动启用GitHub Pages（推荐）
 
-1. **进入仓库设置**
+1. **配置仓库权限**
    - 打开GitHub仓库页面
    - 点击 "Settings" 标签
+   - 在左侧菜单找到 "Actions" → "General"
+   - 在 "Workflow permissions" 部分：
+     - 选择 "Read and write permissions"
+     - 勾选 "Allow GitHub Actions to create and approve pull requests"
+   - 点击 "Save" 保存设置
 
-2. **找到Pages设置**
+2. **启用GitHub Pages**
    - 在左侧菜单中找到 "Pages"
    - 点击进入Pages设置页面
-
-3. **配置部署源**
    - 在 "Source" 部分选择 "GitHub Actions"
    - 保存设置
 
-4. **触发部署**
+3. **触发部署**
    - 推送代码到main分支
    - 或者在Actions页面手动运行workflow
 

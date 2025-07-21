@@ -7,9 +7,10 @@ on:
 
 # 设置GITHUB_TOKEN的权限以允许部署到GitHub Pages
 permissions:
-  contents: read
+  contents: write  # 需要写权限
   pages: write
   id-token: write
+  actions: read
 
 # 只允许一个并发部署，跳过正在运行的部署之间排队的运行
 concurrency:

@@ -7,9 +7,10 @@ on:
 
 # 设置GITHUB_TOKEN的权限
 permissions:
-  contents: read
+  contents: write  # 需要写权限来推送到gh-pages分支
   pages: write
   id-token: write
+  actions: read
 
 # 只允许一个并发部署
 concurrency:
