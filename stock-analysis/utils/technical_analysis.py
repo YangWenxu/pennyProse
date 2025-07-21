@@ -3,21 +3,43 @@
 """
 import pandas as pd
 import numpy as np
-import talib
 from typing import Dict, Any
 import logging
+
+# 尝试导入talib，如果失败则使用替代实现
+try:
+    import talib
+    HAS_TALIB = True
+except ImportError:
+    HAS_TALIB = False
+    print("Warning: talib not available, using simplified implementations")
 
 logger = logging.getLogger(__name__)
 
 
+def calculate_ema(data: pd.Series, period: int) -> pd.Series:
+    """计算指数移动平均线"""
+    return data.ewm(span=period).mean()
+
 def calculate_macd(data: pd.DataFrame) -> Dict[str, Any]:
     """计算MACD指标"""
     try:
-        close_prices = data['收盘'].values
-        macd, signal, histogram = talib.MACD(close_prices)
-        
-        current_macd = macd[-1] if not np.isnan(macd[-1]) else 0
-        current_signal = signal[-1] if not np.isnan(signal[-1]) else 0
+        close_prices = data['收盘']
+
+        if HAS_TALIB:
+            # 使用talib计算
+            macd, signal, histogram = talib.MACD(close_prices.values)
+            current_macd = macd[-1] if not np.isnan(macd[-1]) else 0
+            current_signal = signal[-1] if not np.isnan(signal[-1]) else 0
+        else:
+            # 使用pandas计算MACD
+            ema12 = calculate_ema(close_prices, 12)
+            ema26 = calculate_ema(close_prices, 26)
+            macd_line = ema12 - ema26
+            signal_line = calculate_ema(macd_line, 9)
+
+            current_macd = macd_line.iloc[-1] if len(macd_line) > 0 else 0
+            current_signal = signal_line.iloc[-1] if len(signal_line) > 0 else 0
         current_histogram = histogram[-1] if not np.isnan(histogram[-1]) else 0
         
         trend = "bullish" if current_histogram > 0 else "bearish"
@@ -36,16 +58,35 @@ def calculate_macd(data: pd.DataFrame) -> Dict[str, Any]:
 def calculate_kdj(data: pd.DataFrame) -> Dict[str, Any]:
     """计算KDJ指标"""
     try:
-        high_prices = data['最高'].values
-        low_prices = data['最低'].values
-        close_prices = data['收盘'].values
-        
-        k, d = talib.STOCH(high_prices, low_prices, close_prices)
-        j = 3 * k - 2 * d
-        
-        current_k = k[-1] if not np.isnan(k[-1]) else 50
-        current_d = d[-1] if not np.isnan(d[-1]) else 50
-        current_j = j[-1] if not np.isnan(j[-1]) else 50
+        if HAS_TALIB:
+            high_prices = data['最高'].values
+            low_prices = data['最低'].values
+            close_prices = data['收盘'].values
+
+            k, d = talib.STOCH(high_prices, low_prices, close_prices)
+            j = 3 * k - 2 * d
+
+            current_k = k[-1] if not np.isnan(k[-1]) else 50
+            current_d = d[-1] if not np.isnan(d[-1]) else 50
+            current_j = j[-1] if not np.isnan(j[-1]) else 50
+        else:
+            # 简化的KDJ计算
+            high_prices = data['最高']
+            low_prices = data['最低']
+            close_prices = data['收盘']
+
+            # 计算RSV
+            period = 9
+            if len(data) >= period:
+                rsv = (close_prices.iloc[-1] - low_prices.rolling(period).min().iloc[-1]) / \
+                      (high_prices.rolling(period).max().iloc[-1] - low_prices.rolling(period).min().iloc[-1]) * 100
+            else:
+                rsv = 50
+
+            # 简化的K、D、J值
+            current_k = rsv * 0.6 + 50 * 0.4  # 简化计算
+            current_d = current_k * 0.6 + 50 * 0.4
+            current_j = 3 * current_k - 2 * current_d
         
         if current_k > 80:
             signal = "overbought"
@@ -70,9 +111,23 @@ def calculate_kdj(data: pd.DataFrame) -> Dict[str, Any]:
 def calculate_rsi(data: pd.DataFrame) -> Dict[str, Any]:
     """计算RSI指标"""
     try:
-        close_prices = data['收盘'].values
-        rsi = talib.RSI(close_prices)
-        current_rsi = rsi[-1] if not np.isnan(rsi[-1]) else 50
+        close_prices = data['收盘']
+
+        if HAS_TALIB:
+            rsi = talib.RSI(close_prices.values)
+            current_rsi = rsi[-1] if not np.isnan(rsi[-1]) else 50
+        else:
+            # 简化的RSI计算
+            period = 14
+            if len(close_prices) >= period:
+                delta = close_prices.diff()
+                gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+                rs = gain / loss
+                rsi = 100 - (100 / (1 + rs))
+                current_rsi = rsi.iloc[-1] if not pd.isna(rsi.iloc[-1]) else 50
+            else:
+                current_rsi = 50
         
         if current_rsi > 70:
             signal = "overbought"
@@ -95,13 +150,27 @@ def calculate_rsi(data: pd.DataFrame) -> Dict[str, Any]:
 def calculate_bollinger_bands(data: pd.DataFrame) -> Dict[str, Any]:
     """计算布林带指标"""
     try:
-        close_prices = data['收盘'].values
-        upper, middle, lower = talib.BBANDS(close_prices)
-        
-        current_price = close_prices[-1]
-        current_upper = upper[-1] if not np.isnan(upper[-1]) else current_price * 1.02
-        current_middle = middle[-1] if not np.isnan(middle[-1]) else current_price
-        current_lower = lower[-1] if not np.isnan(lower[-1]) else current_price * 0.98
+        close_prices = data['收盘']
+        current_price = close_prices.iloc[-1]
+
+        if HAS_TALIB:
+            upper, middle, lower = talib.BBANDS(close_prices.values)
+            current_upper = upper[-1] if not np.isnan(upper[-1]) else current_price * 1.02
+            current_middle = middle[-1] if not np.isnan(middle[-1]) else current_price
+            current_lower = lower[-1] if not np.isnan(lower[-1]) else current_price * 0.98
+        else:
+            # 简化的布林带计算
+            period = 20
+            if len(close_prices) >= period:
+                sma = close_prices.rolling(window=period).mean()
+                std = close_prices.rolling(window=period).std()
+                current_middle = sma.iloc[-1]
+                current_upper = current_middle + (std.iloc[-1] * 2)
+                current_lower = current_middle - (std.iloc[-1] * 2)
+            else:
+                current_middle = current_price
+                current_upper = current_price * 1.02
+                current_lower = current_price * 0.98
         
         if current_price > current_upper:
             position = "upper"
@@ -136,12 +205,27 @@ def calculate_bollinger_bands(data: pd.DataFrame) -> Dict[str, Any]:
 def calculate_williams_r(data: pd.DataFrame) -> Dict[str, Any]:
     """计算威廉指标"""
     try:
-        high_prices = data['最高'].values
-        low_prices = data['最低'].values
-        close_prices = data['收盘'].values
-        
-        wr = talib.WILLR(high_prices, low_prices, close_prices)
-        current_wr = wr[-1] if not np.isnan(wr[-1]) else -50
+        if HAS_TALIB:
+            high_prices = data['最高'].values
+            low_prices = data['最低'].values
+            close_prices = data['收盘'].values
+
+            wr = talib.WILLR(high_prices, low_prices, close_prices)
+            current_wr = wr[-1] if not np.isnan(wr[-1]) else -50
+        else:
+            # 简化的威廉指标计算
+            high_prices = data['最高']
+            low_prices = data['最低']
+            close_prices = data['收盘']
+
+            period = 14
+            if len(data) >= period:
+                highest_high = high_prices.rolling(window=period).max().iloc[-1]
+                lowest_low = low_prices.rolling(window=period).min().iloc[-1]
+                current_close = close_prices.iloc[-1]
+                current_wr = ((highest_high - current_close) / (highest_high - lowest_low)) * -100
+            else:
+                current_wr = -50
         
         if current_wr > -20:
             signal = "overbought"
@@ -221,18 +305,25 @@ def calculate_gann_lines(data: pd.DataFrame) -> Dict[str, Any]:
 def calculate_moving_averages(data: pd.DataFrame) -> Dict[str, Any]:
     """计算移动平均线"""
     try:
-        close_prices = data['收盘'].values
-        
-        ma5 = talib.SMA(close_prices, timeperiod=5)
-        ma10 = talib.SMA(close_prices, timeperiod=10)
-        ma20 = talib.SMA(close_prices, timeperiod=20)
-        ma60 = talib.SMA(close_prices, timeperiod=60)
-        
-        current_ma5 = ma5[-1] if not np.isnan(ma5[-1]) else close_prices[-1]
-        current_ma10 = ma10[-1] if not np.isnan(ma10[-1]) else close_prices[-1]
-        current_ma20 = ma20[-1] if not np.isnan(ma20[-1]) else close_prices[-1]
-        current_ma60 = ma60[-1] if not np.isnan(ma60[-1]) else close_prices[-1]
-        current_price = close_prices[-1]
+        close_prices = data['收盘']
+        current_price = close_prices.iloc[-1]
+
+        if HAS_TALIB:
+            ma5 = talib.SMA(close_prices.values, timeperiod=5)
+            ma10 = talib.SMA(close_prices.values, timeperiod=10)
+            ma20 = talib.SMA(close_prices.values, timeperiod=20)
+            ma60 = talib.SMA(close_prices.values, timeperiod=60)
+
+            current_ma5 = ma5[-1] if not np.isnan(ma5[-1]) else current_price
+            current_ma10 = ma10[-1] if not np.isnan(ma10[-1]) else current_price
+            current_ma20 = ma20[-1] if not np.isnan(ma20[-1]) else current_price
+            current_ma60 = ma60[-1] if not np.isnan(ma60[-1]) else current_price
+        else:
+            # 使用pandas计算移动平均线
+            current_ma5 = close_prices.rolling(window=5).mean().iloc[-1] if len(close_prices) >= 5 else current_price
+            current_ma10 = close_prices.rolling(window=10).mean().iloc[-1] if len(close_prices) >= 10 else current_price
+            current_ma20 = close_prices.rolling(window=20).mean().iloc[-1] if len(close_prices) >= 20 else current_price
+            current_ma60 = close_prices.rolling(window=60).mean().iloc[-1] if len(close_prices) >= 60 else current_price
         
         # 多头排列判断
         bullish_alignment = current_ma5 > current_ma10 > current_ma20 > current_ma60
