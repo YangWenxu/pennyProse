@@ -1,0 +1,46 @@
+{
+  "name": "PennyProse",
+  "version": "1.0.0",
+  "deployment": {
+    "platform": "GitHub Pages",
+    "url": "https://yangwenxu.github.io/PennyProse/",
+    "type": "Static Frontend Only",
+    "lastUpdated": "2024-01-01T00:00:00Z"
+  },
+  "services": {
+    "frontend": {
+      "status": "deployed",
+      "technology": "React + Vite",
+      "features": [
+        "博客管理系统",
+        "股票分析工具",
+        "响应式设计",
+        "现代化UI"
+      ]
+    },
+    "backend": {
+      "status": "requires-separate-deployment",
+      "technology": "Node.js + Koa",
+      "note": "需要单独部署到支持Node.js的平台"
+    },
+    "stockApi": {
+      "status": "requires-separate-deployment", 
+      "technology": "Python + FastAPI",
+      "note": "需要单独部署到支持Python的平台"
+    }
+  },
+  "features": {
+    "available": [
+      "前端界面展示",
+      "静态内容浏览",
+      "响应式布局",
+      "路由导航"
+    ],
+    "requiresBackend": [
+      "用户认证",
+      "数据持久化",
+      "API调用",
+      "实时股票数据"
+    ]
+  }
+}
