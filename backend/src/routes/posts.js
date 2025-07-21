@@ -37,6 +37,26 @@ router.get('/admin', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// Get single post by ID (for editing)
+router.get('/id/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const post = await postsService.findById(id);
+
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    res.json({
+      success: true,
+      post
+    });
+  } catch (error) {
+    console.error('Error fetching post by ID:', error);
+    res.status(500).json({ error: 'Failed to fetch post' });
+  }
+});
+
 // Get single post by slug
 router.get('/:slug', async (req, res) => {
   try {
@@ -79,6 +99,7 @@ router.put('/:id', requireAuth, requireAdmin, validatePost, async (req, res) => 
     const { id } = req.params;
     const post = await postsService.update(id, req.body);
     res.json({
+      success: true,
       message: 'Post updated successfully',
       post,
     });

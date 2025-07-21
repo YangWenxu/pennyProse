@@ -54,6 +54,10 @@ export const api = {
   getPost: (slug) => {
     return apiClient.get(`/api/posts/${slug}`)
   },
+
+  getPostById: (id) => {
+    return apiClient.get(`/api/posts/id/${id}`)
+  },
   
   createPost: (data) => {
     return apiClient.post('/api/posts', data)
@@ -76,6 +80,14 @@ export const api = {
     return apiClient.post('/api/categories', data)
   },
 
+  updateCategory: (id, data) => {
+    return apiClient.put(`/api/categories/${id}`, data)
+  },
+
+  deleteCategory: (id) => {
+    return apiClient.delete(`/api/categories/${id}`)
+  },
+
   getCategoryPosts: (slug, params = {}) => {
     return apiClient.get(`/api/categories/${slug}/posts`, { params })
   },
@@ -87,6 +99,14 @@ export const api = {
 
   createTag: (data) => {
     return apiClient.post('/api/tags', data)
+  },
+
+  updateTag: (id, data) => {
+    return apiClient.put(`/api/tags/${id}`, data)
+  },
+
+  deleteTag: (id) => {
+    return apiClient.delete(`/api/tags/${id}`)
   },
 
   getTagPosts: (slug, params = {}) => {

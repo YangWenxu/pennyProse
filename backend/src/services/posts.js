@@ -160,6 +160,53 @@ export class PostsService {
     return this.transformPost(post);
   }
 
+  // Get single post by ID (for editing)
+  async findById(id) {
+    const post = await prisma.post.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            avatar: true,
+            bio: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                color: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: { comments: true },
+        },
+      },
+    });
+
+    if (!post) {
+      return null;
+    }
+
+    return this.transformPost(post);
+  }
+
   // Create new post (admin)
   async create(postData, authorId) {
     const { title, slug, excerpt, content, status = 'DRAFT', featured = false, categoryId, tagIds } = postData;

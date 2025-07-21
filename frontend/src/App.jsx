@@ -6,6 +6,7 @@ import Admin from './pages/Admin'
 import BlogList from './pages/blog/BlogList'
 import PostDetail from './pages/blog/PostDetail'
 import CreatePost from './pages/blog/CreatePost'
+import EditPost from './pages/blog/EditPost'
 import CategoryPosts from './pages/blog/CategoryPosts'
 import TagPosts from './pages/blog/TagPosts'
 import ArchivePosts from './pages/blog/ArchivePosts'
@@ -39,6 +40,7 @@ function App() {
               <Route path="/blog" element={<BlogList />} />
               <Route path="/post/:slug" element={<PostDetail />} />
               <Route path="/create" element={<CreatePost />} />
+              <Route path="/edit/:id" element={<EditPost />} />
               <Route path="/categories/:slug" element={<CategoryPosts />} />
               <Route path="/tags/:slug" element={<TagPosts />} />
               <Route path="/archive/:year/:month" element={<ArchivePosts />} />

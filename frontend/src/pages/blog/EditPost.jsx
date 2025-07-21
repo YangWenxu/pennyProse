@@ -1,31 +1,59 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Save, Eye, ArrowLeft, Edit3, Upload, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Save, Eye, ArrowLeft, Edit3, Loader2 } from 'lucide-react'
 import { api } from '../../api/client'
-import SingleMarkdownImporter from '../../components/SingleMarkdownImporter'
 
-const CreatePost = () => {
+const EditPost = () => {
   const navigate = useNavigate()
+  const { id } = useParams()
   const [formData, setFormData] = useState({
     title: '',
     content: '',
     excerpt: '',
     categoryId: '',
     tags: [],
-    status: 'draft'
+    status: 'DRAFT'
   })
   const [categories, setCategories] = useState([])
   const [availableTags, setAvailableTags] = useState([])
   const [newTag, setNewTag] = useState('')
   const [isPreview, setIsPreview] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [useMarkdownImport, setUseMarkdownImport] = useState(false)
 
   useEffect(() => {
+    fetchPost()
     fetchCategories()
     fetchTags()
-  }, [])
+  }, [id])
+
+  const fetchPost = async () => {
+    try {
+      setLoading(true)
+      const response = await api.getPostById(id)
+      console.log('API Response:', response.data)
+
+      if (response.data.success && response.data.post) {
+        const post = response.data.post
+        setFormData({
+          title: post.title || '',
+          content: post.content || '',
+          excerpt: post.excerpt || '',
+          categoryId: post.categoryId || '',
+          tags: post.tags?.map(tag => tag.id) || [],
+          status: post.status || 'DRAFT'
+        })
+      } else {
+        setError('Failed to load post')
+      }
+    } catch (err) {
+      console.error('Error fetching post:', err)
+      setError(`Failed to load post: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const fetchCategories = async () => {
     try {
@@ -57,30 +85,36 @@ const CreatePost = () => {
     }))
   }
 
-  const handleTagSelect = (tag) => {
-    if (!formData.tags.includes(tag.name)) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tag.name]
-      }))
-    }
-  }
-
-  const handleTagAdd = () => {
-    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, newTag.trim()]
-      }))
-      setNewTag('')
-    }
-  }
-
-  const handleTagRemove = (tagToRemove) => {
+  const handleTagToggle = (tagId) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
+      tags: prev.tags.includes(tagId)
+        ? prev.tags.filter(id => id !== tagId)
+        : [...prev.tags, tagId]
     }))
+  }
+
+  const handleAddNewTag = async () => {
+    if (!newTag.trim()) return
+
+    try {
+      const response = await api.createTag({
+        name: newTag.trim(),
+        slug: newTag.trim().toLowerCase().replace(/\s+/g, '-')
+      })
+      
+      if (response.data.success) {
+        const newTagData = response.data.tag
+        setAvailableTags(prev => [...prev, newTagData])
+        setFormData(prev => ({
+          ...prev,
+          tags: [...prev.tags, newTagData.id]
+        }))
+        setNewTag('')
+      }
+    } catch (err) {
+      console.error('Error creating tag:', err)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -91,32 +125,33 @@ const CreatePost = () => {
       return
     }
 
-    setLoading(true)
+    setSaving(true)
     setError('')
 
     try {
-      const response = await api.createPost(formData)
+      const response = await api.updatePost(id, formData)
       if (response.data.success) {
         navigate('/admin')
       } else {
-        setError(response.data.message || 'Failed to create post')
+        setError(response.data.message || 'Failed to update post')
       }
     } catch (err) {
-      console.error('Error creating post:', err)
-      setError('Failed to create post. Please try again.')
+      console.error('Error updating post:', err)
+      setError('Failed to update post. Please try again.')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
-  const handleMarkdownImport = (importedData) => {
-    setFormData(prev => ({
-      ...prev,
-      title: importedData.title || prev.title,
-      content: importedData.content || prev.content,
-      excerpt: importedData.excerpt || prev.excerpt
-    }))
-    setUseMarkdownImport(false)
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+          <span className="ml-2 text-gray-600">Loading post...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -133,71 +168,43 @@ const CreatePost = () => {
               <span className="font-medium">Back to Admin</span>
             </button>
             <div className="h-6 w-px bg-gray-300"></div>
-            <h1 className="text-2xl font-bold text-gray-900">Create New Post</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Edit Post</h1>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsPreview(!isPreview)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                isPreview 
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' 
+                isPreview
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
                   : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
               }`}
             >
               {isPreview ? <Edit3 className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               {isPreview ? 'Edit Mode' : 'Preview'}
             </button>
-            
+
             <button
               type="submit"
-              form="create-post-form"
-              disabled={loading}
+              form="edit-post-form"
+              disabled={saving}
               className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
             >
-              {loading ? (
+              {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              {loading ? 'Creating...' : 'Create Post'}
+              {saving ? 'Updating...' : 'Update Post'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Import Toggle */}
-      <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-gray-900">Content Input Method</h3>
-            <p className="text-sm text-gray-600 mt-1">Choose between manual input or markdown file import</p>
-          </div>
-          <button
-            onClick={() => setUseMarkdownImport(!useMarkdownImport)}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-blue-700 rounded-lg border border-blue-200 hover:bg-blue-50 transition-all duration-200 font-medium"
-          >
-            {useMarkdownImport ? (
-              <ToggleRight className="w-5 h-5 text-blue-600" />
-            ) : (
-              <ToggleLeft className="w-5 h-5 text-gray-400" />
-            )}
-            <span>{useMarkdownImport ? 'File Import Mode' : 'Manual Input Mode'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Markdown Import */}
-      {useMarkdownImport && (
-        <div className="mb-8">
-          <SingleMarkdownImporter onImport={handleMarkdownImport} />
-        </div>
-      )}
-
       {/* Form */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <form id="create-post-form" onSubmit={handleSubmit} className="p-6 space-y-8">
+        <form id="edit-post-form" onSubmit={handleSubmit} className="p-6 space-y-8">
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center gap-2">
@@ -284,8 +291,9 @@ const CreatePost = () => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 bg-white appearance-none cursor-pointer"
                 >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="PUBLISHED">Published</option>
+                  <option value="ARCHIVED">Archived</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,16 +318,15 @@ const CreatePost = () => {
                     <button
                       key={tag.id}
                       type="button"
-                      onClick={() => handleTagSelect(tag)}
+                      onClick={() => handleTagToggle(tag.id)}
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
-                        formData.tags.includes(tag.name)
-                          ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm cursor-not-allowed'
+                        formData.tags.includes(tag.id)
+                          ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm'
                           : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
                       }`}
-                      disabled={formData.tags.includes(tag.name)}
                     >
                       {tag.name}
-                      {formData.tags.includes(tag.name) && (
+                      {formData.tags.includes(tag.id) && (
                         <span className="ml-1 text-blue-500">✓</span>
                       )}
                     </button>
@@ -337,11 +344,11 @@ const CreatePost = () => {
                     onChange={(e) => setNewTag(e.target.value)}
                     placeholder="Enter new tag name..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleTagAdd())}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddNewTag())}
                   />
                   <button
                     type="button"
-                    onClick={handleTagAdd}
+                    onClick={handleAddNewTag}
                     disabled={!newTag.trim()}
                     className="px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                   >
@@ -349,30 +356,6 @@ const CreatePost = () => {
                   </button>
                 </div>
               </div>
-
-              {/* Selected Tags */}
-              {formData.tags.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-600 font-medium">Selected tags:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => handleTagRemove(tag)}
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -414,4 +397,4 @@ const CreatePost = () => {
   )
 }
 
-export default CreatePost
+export default EditPost

@@ -97,6 +97,7 @@ router.put('/:id', requireAuth, requireAdmin, validateTag, async (req, res) => {
     const { id } = req.params;
     const tag = await tagsService.update(id, req.body);
     res.json({
+      success: true,
       message: 'Tag updated successfully',
       tag,
     });

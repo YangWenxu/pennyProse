@@ -97,6 +97,7 @@ router.put('/:id', requireAuth, requireAdmin, validateCategory, async (req, res)
     const { id } = req.params;
     const category = await categoriesService.update(id, req.body);
     res.json({
+      success: true,
       message: 'Category updated successfully',
       category,
     });
