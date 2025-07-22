@@ -1,6 +1,7 @@
 {
   "version": 2,
   "name": "pennyprose-api",
+  "buildCommand": "pnpm install --no-frozen-lockfile && pnpm vercel:build",
   "builds": [
     {
       "src": "src/main.js",
