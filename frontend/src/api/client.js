@@ -1,9 +1,11 @@
 import axios from 'axios'
 
 // 根据环境配置API基础URL
-const API_BASE_URL = import.meta.env.PROD
-  ? 'https://pennyprose-api.vercel.app'  // 生产环境API地址（需要单独部署）
-  : 'http://localhost:3001'              // 开发环境API地址
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (
+  import.meta.env.PROD
+    ? 'https://pennyprose-api-git-main-yangwenxu.vercel.app'  // 部署后替换为实际地址
+    : 'http://localhost:3001'                                 // 开发环境API地址
+)
 
 // 注意：GitHub Pages只支持静态网站，后端API需要部署到其他平台
 // 推荐的后端部署平台：

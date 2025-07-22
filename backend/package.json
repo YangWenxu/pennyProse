@@ -12,7 +12,10 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "test": "echo \"No tests configured\"",
-    "test:ci": "echo \"No tests configured\""
+    "test:ci": "echo \"No tests configured\"",
+    "deploy:setup": "node scripts/deploy-setup.js",
+    "vercel:build": "pnpm db:generate && pnpm deploy:setup",
+    "postinstall": "pnpm db:generate"
   },
   "keywords": ["blog", "api", "koa", "prisma"],
   "author": "",
