@@ -11,8 +11,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "test": "echo \"No tests configured\"",
-    "test:ci": "echo \"No tests configured\"",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:ci": "node --experimental-vm-modules node_modules/jest/bin/jest.js --ci",
     "deploy:setup": "node scripts/deploy-setup.js",
     "vercel:build": "pnpm db:generate && pnpm deploy:setup",
     "postinstall": "pnpm db:generate"
