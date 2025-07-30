@@ -1,15 +1,9 @@
 /**
  * Vercel 部署后的数据库初始化脚本
  */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  }
-});
+const prisma = new PrismaClient();
 
 async function setupDatabase() {
   console.log('🚀 开始数据库初始化...');
@@ -81,7 +75,9 @@ async function setupDatabase() {
     const postCount = await prisma.post.count();
     if (postCount === 0) {
       console.log('📝 创建示例文章...');
-      const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+      // 获取所有用户，然后在 JavaScript 中过滤
+      const users = await prisma.user.findMany();
+      const admin = users.find(user => user.role === 'ADMIN');
       const techCategory = await prisma.category.findFirst({ where: { slug: 'tech' } });
       
       if (admin && techCategory) {
